@@ -30,7 +30,7 @@
     flags           .byte
     border_columns  .byte
     row_height      .byte
-    texture_bits    .byte   ; 2-0 texture_width_bits, 6-4 texture_height_bits
+    texture_bits    .byte       ; 2-0 texture_width_bits, 6-4 texture_height_bits
     u               .word
     v               .word
     du              .word
@@ -39,7 +39,7 @@
     dy              .word
 .endstruct
 .struct CGIA_SPRITE_REGS
-    active          .byte   ;bitmask for active sprites
+    active          .byte       ; bitmask for active sprites
     border_columns  .byte
     start_y         .byte
     stop_y          .byte
@@ -75,21 +75,20 @@
                 .byte (16-3)    ; reserved
 
     raster      .word
-                .byte (6)       ; reserved
+                .byte (8-2)     ; reserved
     int_raster  .word
     int_enable  .byte
     int_status  .byte
-                .byte (4)       ; reserved
+                .byte (8-4)     ; reserved
 
-    pwm0        .tag CGIA_PWM
-    pwm1        .tag CGIA_PWM
-                .tag CGIA_PWM ; reserved
-                .tag CGIA_PWM ; reserved
+                .byte (16)      ; reserved
 
-    planes      .byte        ; [TTTTEEEE] EEEE - enable bits, TTTT - type (0 bckgnd, 1 sprite)
+    planes      .byte           ; [TTTTEEEE] EEEE - enable bits, TTTT - type (0 bckgnd, 1 sprite)
+    order       .byte           ; [xxxOOOOO] OOOOO - plane order permutation
+                .byte (4-2)     ; reserved
     back_color  .byte
-                .byte (8-2)   ; reserved
-    offset0     .word   ; // DisplayList or SpriteDescriptor table start
+                .byte (4-1)     ; reserved
+    offset0     .word           ; DisplayList or SpriteDescriptor table start
     offset1     .word
     offset2     .word
     offset3     .word

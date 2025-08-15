@@ -43,10 +43,10 @@ target_sources(four_byte_burger PRIVATE
     cgia/four_byte_burger.asm
 )
 
-add_xex(pwm_samples)
-target_sources(pwm_samples PRIVATE
-    cgia/pwm_samples.asm
-)
+# add_xex(pwm_samples)
+# target_sources(pwm_samples PRIVATE
+#     cgia/pwm_samples.asm
+# )
 add_xex(opl)
 target_sources(opl PRIVATE
     sound/opl.asm
