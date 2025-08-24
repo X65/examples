@@ -2,7 +2,7 @@ include_directories(.)
 
 add_xex(test816)
 target_sources(test816 PRIVATE
-    test816.asm
+    tests/test816.asm
 )
 
 add_xex(swboy)

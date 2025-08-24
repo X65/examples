@@ -57,9 +57,11 @@ cgia_regs:
 .byte   $00, $00, $00, $00, $00, $00, $00, $00 ; PWM0, PWM1
 .byte   $00, $00, $00, $00, $00, $00, $00, $00 ; not used
 .byte   $00  ; PLANES bitmask: [TTTTEEEE] EEEE - enable bits, TTTT - type (0 bckgnd, 1 sprite)
+.byte   $00  ; ORDER: [xxxOOOOO] OOOOO - plane order permutation
+.byte   $00, $00 ; not used
 .byte   $00  ; back_color
-.byte   $00, $00, $00, $00, $00, $00 ; not used
-.word   display_list
+.byte   $00, $00, $00 ; not used
+.word   display_list  ; PLANE0 DL offset
 .word   $0000  ; PLANE1 DL offset
 .word   $0000  ; PLANE2 DL offset
 .word   $0000  ; PLANE3 DL offset

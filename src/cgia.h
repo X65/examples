@@ -1,4 +1,4 @@
-#include "sys/types.h"
+#include <sys/types.h>
 
 #define CGIA_COLUMN_PX (8)
 
@@ -79,6 +79,7 @@ union cgia_plane_regs_t
         int8_t scroll_y;
         int8_t offset_y;
         uint8_t shared_color[2];
+        uint8_t reserved[6];
     } bckgnd;
 
     struct cgia_ham_regs
@@ -110,6 +111,7 @@ union cgia_plane_regs_t
         uint8_t border_columns;
         uint8_t start_y;
         uint8_t stop_y;
+        uint8_t reserved[12];
     } sprite;
 
     uint8_t reg[CGIA_PLANE_REGS_NO];
@@ -121,21 +123,13 @@ union cgia_plane_regs_t
 
 // plane flags:
 // 0 - color 0 is transparent
-// 1-3 - [RESERVED]
+// 1-2 - [RESERVED]
+// 3 - border is transparent
 // 4 - double-width pixel
 // 5-7 - [RESERVED]
 #define PLANE_MASK_TRANSPARENT        0b00000001
 #define PLANE_MASK_BORDER_TRANSPARENT 0b00001000
 #define PLANE_MASK_DOUBLE_WIDTH       0b00010000
-
-struct cgia_pwm_t
-{
-    uint16_t freq;
-    uint8_t duty;
-    uint8_t _reserved;
-};
-
-#define CGIA_PWMS (2)
 
 struct cgia_t
 {
@@ -143,22 +137,27 @@ struct cgia_t
 
     uint8_t bckgnd_bank;
     uint8_t sprite_bank;
-    uint8_t _reserved[16 - 3];
-
+    uint8_t _ctl_reserved[16 - 3];
+    // -------------------------------------------------------------------
     uint16_t raster;
-    uint8_t _raster_res1[6];
+    uint8_t _rst_reserved1[8 - 2];
+
     uint16_t int_raster; // Line to generate raster interrupt.
     uint8_t int_enable;  // Interrupt flags. [VBI DLI RSI x x x x x]
     uint8_t int_status;  // Interrupt flags. [VBI DLI RSI x x x x x]
-    uint8_t _raster_res2[4];
-
-    struct cgia_pwm_t pwm[CGIA_PWMS];
-    struct cgia_pwm_t _reserved_pwm[4 - CGIA_PWMS];
-
+    uint8_t _rst_reserved2[8 - 4];
+    // -------------------------------------------------------------------
+    uint8_t _reserved[16];
+    // -------------------------------------------------------------------
     uint8_t planes; // [TTTTEEEE] EEEE - enable bits, TTTT - type (0 bckgnd, 1 sprite)
+    uint8_t order;  // [xxxOOOOO] OOOOO - plane order permutation
+    uint8_t _pln_reserved1[4 - 2];
+
     uint8_t back_color;
-    uint8_t _reserved_planes[8 - 2];
+    uint8_t _pln_reserved[4 - 1];
+
     uint16_t offset[CGIA_PLANES]; // DisplayList or SpriteDescriptor table start
+    // -------------------------------------------------------------------
     union cgia_plane_regs_t plane[CGIA_PLANES];
 };
 
@@ -175,10 +174,6 @@ struct cgia_t
 #define CGIA_REG_INT_STATUS  (offsetof(struct cgia_t, int_status))
 #define CGIA_REG_PLANES      (offsetof(struct cgia_t, planes))
 #define CGIA_REG_BACK_COLOR  (offsetof(struct cgia_t, back_color))
-#define CGIA_REG_PWM_0_FREQ  (0x20) // PWM channel 0 frequency.
-#define CGIA_REG_PWM_0_DUTY  (0x22) // PWM channel 0 duty-cycle.
-#define CGIA_REG_PWM_1_FREQ  (0x24) // PWM channel 1 frequency.
-#define CGIA_REG_PWM_1_DUTY  (0x26) // PWM channel 1 duty-cycle.
 
 #define CGIA_REG_INT_FLAG_VBI 0b10000000
 #define CGIA_REG_INT_FLAG_DLI 0b01000000
