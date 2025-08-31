@@ -61,7 +61,7 @@ cgia_regs:
 .byte   $00, $00 ; not used
 .byte   $00  ; back_color
 .byte   $00, $00, $00 ; not used
-.word   display_list  ; PLANE0 DL offset
+.word   live_display_list1  ; PLANE0 DL offset
 .word   $0000  ; PLANE1 DL offset
 .word   $0000  ; PLANE2 DL offset
 .word   $0000  ; PLANE3 DL offset
@@ -108,7 +108,6 @@ cgia_init_loop:
         bpl cgia_init_loop
 
         jsr create_color_table
-        jsr update_display_list
 
         ; set back color
         lda #178
@@ -122,7 +121,7 @@ cgia_init_loop:
         lda #%10000000
         sta CGIA::int_enable
 
-self:   jmp self
+self:   bra self
 
 picture_offset:
 .byte   0
@@ -131,8 +130,12 @@ scroll_direction:
 scroll_delay:
 .byte   1
 
-; each frame scroll the picture by one line
 vbl_handler:
+        ; set display list for this frame
+        ldx live_dl_offset
+        stx CGIA::offset0
+
+        ; delay scrolling every 5th frame
         dec scroll_delay
         bne vbl_exit
         lda #5
@@ -147,7 +150,7 @@ vbl_scroll_down:
         stz scroll_direction
         bra vbl_scroll_up
 :       dec picture_offset
-        bra vbl_exit
+        bra vbl_update
 vbl_scroll_up:
         lda picture_offset
         cmp #picture_lines - display_lines
@@ -157,9 +160,27 @@ vbl_scroll_up:
         bra vbl_scroll_down
 :       inc picture_offset
 
-vbl_exit:
+vbl_update:
         jsr update_display_list
 
+        lda live_dl
+        bne :+
+        inc live_dl
+        ldy #live_display_list2
+        bra :++
+:       stz live_dl
+        ldy #live_display_list1
+:       sty live_dl_offset
+        sty display_list_jmp
+
+        ; copy generated DL to Live
+        ldx #display_list
+        _a16
+        lda #(display_list_end - display_list)
+        mvn 0,0
+        _a8
+
+vbl_exit:
         sta CGIA::int_status    ; ack interrupts
         rti
 
@@ -252,8 +273,25 @@ display_list_start:
 .repeat display_lines
 .byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::shared_color << 4), $00
 .byte   CGIA_DL_INS_LOAD_REG8 | ((CGIA_BCKGND_REGS::shared_color + 1) << 4), $00
-.byte   CGIA_DL_MODE_MULTICOLOR_BITMAP
-.byte   CGIA_DL_INS_DUPLICATE_LINES    ; duplicate each MODE5 line
+.byte   CGIA_DL_MODE_MULTICOLOR_BITMAP | CGIA_DL_STORE_BIT
+.byte   CGIA_DL_INS_DUPLICATE_LINES    ; duplicate each line one time
 .endrep
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT ; JMP to begin of DL and wait for Vertical BLank
+display_list_jmp:
 .word   display_list
+display_list_end:
+
+live_dl:
+.byte 0
+live_dl_offset:
+.word live_display_list1
+
+live_display_list1:
+.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
+.word   live_display_list1
+.res    display_list_end - display_list
+
+live_display_list2:
+.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
+.word   live_display_list2
+.res    display_list_end - display_list
