@@ -18,7 +18,7 @@
         "cwd": "${workspaceFolder}/build"
       },
       "command": "emu",
-      "args": ["src/wozmon.xex"],
+      "args": ["src/bogo.xex"],
       "problemMatcher": []
     }
   ]
