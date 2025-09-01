@@ -59,9 +59,9 @@ reset:
 
         ; clear CGIA registers
         stz CGIA::mode
-        ldx CGIA::mode
-        ldy CGIA::mode+1
-        lda CGIA::plane0-1
+        ldx #CGIA::mode
+        ldy #CGIA::mode+1
+        lda #CGIA::plane0-CGIA::mode-1
         mvn 0,0
         ; set border/background color
         store #bg_color, CGIA::back_color
@@ -102,7 +102,6 @@ reset:
         ; --- activate background plane
         store #%00000001, CGIA::planes
 
-        _a8
 forever:
         inc $00
         bne forever
