@@ -62,6 +62,11 @@ target_sources(gpio PRIVATE
     io/gpio.asm
 )
 
+add_xex(controller)
+target_sources(controller PRIVATE
+    io/controller.asm
+)
+
 add_xex(bogo)
 target_sources(bogo PRIVATE
     bench/bogo.asm
