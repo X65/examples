@@ -142,21 +142,21 @@ init_cgia:
         lda #RIA_API_GET_CHARGEN
         sta RIA::op
 
-        _i16
-        stz CGIA::mode
-        ldx #CGIA::mode
-        ldy #CGIA::mode+1
-        lda #CGIA::plane0-CGIA::mode-1
-        mvn 0,0
-        store #bg_color, CGIA::back_color
+        _a8
         store #bg_color, bkgnd_offset
         store #fg_color, color_offset
 
+        _ai16
+        stz CGIA::mode
+        ldx #CGIA::mode
+        ldy #CGIA::mode+2
+        lda #CGIA::plane0-CGIA::mode-2
+        mvn 0,0
+
         stz text_offset
         ldx #text_offset
-        ldy #text_offset+1
-        _a16
-        lda #text_columns*text_rows-1
+        ldy #text_offset+2
+        lda #text_columns*text_rows-2
         mvn 0,0
 
         ldx #bkgnd_offset
@@ -176,6 +176,10 @@ init_cgia:
 
         store #display_list, CGIA::offset0
         _ai8
+        store #bg_color, CGIA::back_color
+
+:       bit CGIA::raster
+        bne :-
         store #%00000001, CGIA::planes
 
         sec
