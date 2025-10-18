@@ -13,8 +13,8 @@
 .code
         cli     ; enable IRQ
 
-        lda #%00000010  ; enable IO interrupts
-        sta RIA::irq_enable
+        ; lda #%00000010  ; enable IO interrupts
+        ; sta RIA::irq_enable
 
 loop:
         lda GPIO::in0

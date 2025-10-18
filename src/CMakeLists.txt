@@ -67,6 +67,16 @@ target_sources(controller PRIVATE
     io/controller.asm
 )
 
+add_xex(irq)
+target_sources(irq PRIVATE
+    io/irq.asm
+)
+
+add_xex(ext)
+target_sources(ext PRIVATE
+    io/ext.asm
+)
+
 add_xex(bogo)
 target_sources(bogo PRIVATE
     bench/bogo.asm

@@ -18,7 +18,7 @@
         "cwd": "${workspaceFolder}/build"
       },
       "command": "emu",
-      "args": ["src/controller.xex"],
+      "args": ["src/ext.xex"],
       "problemMatcher": []
     }
   ]

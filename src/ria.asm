@@ -21,10 +21,11 @@
 
     ; file access
     fda         .byte
-    fda_rw      .byte
     fdb         .byte
+    fda_rw      .byte
     fdb_rw      .byte
-    _fd_res     .byte 2
+    fda_st      .byte
+    fdb_st      .byte
 
     ; UART
     uart_rdy    .byte
@@ -39,9 +40,10 @@
     abort_n     .addr
     nmi_n       .addr
 
-    ; Interrupt Control
-    irq_status  .byte
+    ; RIA interrupts sources enable
     irq_enable  .byte
+    ; Interrupt Controller IRQ status
+    irq_status  .byte
 
     ; CPU Vector Native
     irq_n       .addr
