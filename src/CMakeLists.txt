@@ -47,6 +47,10 @@ target_sources(four_byte_burger PRIVATE
 # target_sources(pwm_samples PRIVATE
 #     cgia/pwm_samples.asm
 # )
+add_xex(doremi)
+target_sources(doremi PRIVATE
+    sound/doremi.asm
+)
 add_xex(opl)
 target_sources(opl PRIVATE
     sound/opl.asm

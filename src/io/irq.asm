@@ -30,7 +30,7 @@ fg_color = 150
 
         jsr cgia_init_text
 
-        _a8
+        .a8
 mainloop:
         lda RIA::irq_status
         ldx #0

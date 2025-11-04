@@ -62,7 +62,7 @@ cgia_init_text:
         rts
 
 cgia_planes:
-.byte $00,4,7,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+.byte $00,(48-text_columns)/2,7,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
 display_list:
 .byte   CGIA_DL_INS_LOAD_MEMORY | CGIA_DL_INS_LM_MEMORY_SCAN|CGIA_DL_INS_LM_FOREGROUND_SCAN|CGIA_DL_INS_LM_BACKGROUND_SCAN|CGIA_DL_INS_LM_CHARACTER_GENERATOR
