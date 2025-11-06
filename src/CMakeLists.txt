@@ -42,6 +42,10 @@ add_xex(four_byte_burger)
 target_sources(four_byte_burger PRIVATE
     cgia/four_byte_burger.asm
 )
+add_xex(mode0)
+target_sources(mode0 PRIVATE
+    cgia/mode0.asm
+)
 
 # add_xex(pwm_samples)
 # target_sources(pwm_samples PRIVATE

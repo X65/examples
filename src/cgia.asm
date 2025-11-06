@@ -18,7 +18,7 @@
     offset_x        .byte
     scroll_y        .byte
     offset_y        .byte
-    shared_color    .byte 2
+    shared_color    .byte 8
 .endstruct
 .struct CGIA_HAM_REGS
     flags           .byte
