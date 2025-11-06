@@ -198,7 +198,7 @@ display_list:
 .word   chgen_offset
 .byte   $70, $70, $30
 .repeat text_rows
-.byte   CGIA_DL_MODE_TEXT
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT
 .endrep
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
 .word   display_list

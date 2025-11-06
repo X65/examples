@@ -172,7 +172,7 @@ display_list:
 .word   chgen_offset
 .byte   $70, $70, $30           ; 2x 8 + 1x 4 of empty background lines
 .repeat text_rows
-.byte   CGIA_DL_MODE_TEXT
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT
 .endrep
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT ; JMP to begin of DL and wait for Vertical BLank
 .word   display_list

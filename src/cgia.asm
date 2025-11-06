@@ -107,7 +107,7 @@
 .define CGIA_REG_INT_FLAG_RSI %00100000
 
 .define CGIA_DL_INS_EMPTY_LINES         $00
-.define CGIA_DL_INS_DUPLICATE_LINES     $01
+.define CGIA_DL_INS_RESERVED_1          $01
 .define CGIA_DL_INS_JUMP                $02
 .define CGIA_DL_INS_DL_INTERRUPT            %10000000
 .define CGIA_DL_INS_LOAD_MEMORY         $03
@@ -120,10 +120,10 @@
 .define CGIA_DL_INS_RESERVED_6          $06
 .define CGIA_DL_INS_RESERVED_7          $07
 
-.define CGIA_DL_MODE_RESERVED_0         $08
-.define CGIA_DL_MODE_RESERVED_1         $09
-.define CGIA_DL_MODE_TEXT               $0A
-.define CGIA_DL_MODE_BITMAP             $0B
+.define CGIA_DL_MODE_PALETTE_TEXT       $08
+.define CGIA_DL_MODE_PALETTE_BITMAP     $09
+.define CGIA_DL_MODE_ATTRIBUTE_TEXT     $0A
+.define CGIA_DL_MODE_ATTRIBUTE_BITMAP   $0B
 .define CGIA_DL_MODE_MULTICOLOR_TEXT    $0C
 .define CGIA_DL_MODE_MULTICOLOR_BITMAP  $0D
 .define CGIA_DL_MODE_HOLD_AND_MODIFY    $0E
