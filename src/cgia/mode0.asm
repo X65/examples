@@ -95,19 +95,19 @@ display_list:
 .word   text_offset
 .word   chgen_offset
 .byte   $70           ; top border
-.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), %00000000 ; 1bpp
+.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), PLANE_BITS_1BPP
 .repeat 7
 .byte   CGIA_DL_MODE_PALETTE_TEXT
 .endrep
-.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), %00100000 ; 2bpp
+.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), PLANE_BITS_2BPP
 .repeat 7
 .byte   CGIA_DL_MODE_PALETTE_TEXT
 .endrep
-.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), %01000000 ; 3bpp
+.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), PLANE_BITS_3BPP
 .repeat 7
 .byte   CGIA_DL_MODE_PALETTE_TEXT
 .endrep
-.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), %01100000 ; 4bpp
+.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), PLANE_BITS_4BPP
 .repeat 7
 .byte   CGIA_DL_MODE_PALETTE_TEXT
 .endrep

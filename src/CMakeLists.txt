@@ -46,6 +46,10 @@ add_xex(mode0)
 target_sources(mode0 PRIVATE
     cgia/mode0.asm
 )
+add_xex(text_modes)
+target_sources(text_modes PRIVATE
+    cgia/text_modes.asm
+)
 
 # add_xex(pwm_samples)
 # target_sources(pwm_samples PRIVATE

@@ -1,9 +1,5 @@
 .define CGIA_COLUMN_PX 8
 
-.define CGIA_DL_MODE_BIT  %00001000
-.define CGIA_DL_DLI_BIT   %10000000
-.define CGIA_DL_STORE_BIT %01000000
-
 .define CGIA_PLANE_REGS_NO 16
 
 .struct CGIA_PLANE_REGS
@@ -52,12 +48,24 @@
 
 ; plane flags:
 ; 0 - color 0 is transparent
-; 1-3 - [RESERVED]
+; 1-2 - [RESERVED]
+; 3 - border is transparent
 ; 4 - double-width pixel
-; 5-7 - [RESERVED]
+; 5 - multicolor-pixel
+; 6,7 - pixel bits: 00 - 1bit, 2 colors; 01 - 2bit, 4 colors;
+;                   10 - 3bit, 8 colors; 11 - 4bit, 8 colors + half-bright
 .define PLANE_MASK_TRANSPARENT        %00000001
 .define PLANE_MASK_BORDER_TRANSPARENT %00001000
 .define PLANE_MASK_DOUBLE_WIDTH       %00010000
+.define PLANE_MASK_MULTICOLOR         %00100000
+.define PLANE_MASK_PIXEL_BITS         %11000000
+
+.define PLANE_MASK_FROM_DL PLANE_MASK_DOUBLE_WIDTH | PLANE_MASK_MULTICOLOR
+
+.define PLANE_BITS_1BPP %00 << 6
+.define PLANE_BITS_2BPP %01 << 6
+.define PLANE_BITS_3BPP %10 << 6
+.define PLANE_BITS_4BPP %11 << 6
 
 .struct CGIA_PWM
     freq    .word
@@ -106,6 +114,7 @@
 .define CGIA_REG_INT_FLAG_DLI %01000000
 .define CGIA_REG_INT_FLAG_RSI %00100000
 
+; --- DISPLAY LIST INSTRUCTIONS ---
 .define CGIA_DL_INS_EMPTY_LINES         $00
 .define CGIA_DL_INS_RESERVED_1          $01
 .define CGIA_DL_INS_JUMP                $02
@@ -129,8 +138,14 @@
 .define CGIA_DL_MODE_HOLD_AND_MODIFY    $0E
 .define CGIA_DL_MODE_AFFINE_TRANSFORM   $0F
 
-.define CGIA_SPRITE_DESC_LEN 16
+.define CGIA_DL_MODE_BIT         %00001000
+.define CGIA_DL_DOUBLE_WIDTH_BIT %00010000
+.define CGIA_DL_MULTICOLOR_BIT   %00100000
+.define CGIA_DL_RESERVED_BIT     %01000000
+.define CGIA_DL_DLI_BIT          %10000000
+
 ; --- SPRITE DESCRIPTOR --- (16 bytes) ---
+.define CGIA_SPRITE_DESC_LEN 16
 .struct CGIA_SPRITE
     pos_x   .word
     pos_y   .word
@@ -149,13 +164,14 @@
 
 ; sprite flags:
 ; 0-2 - width in bytes
-; 3 - multicolor
+; 3 - [RESERVED]
 ; 4 - double-width
-; 5 - mirror X
-; 6 - mirror Y
-; 7 - [RESERVED]
+; 5 - multicolor
+; 6 - mirror X
+; 7 - mirror Y
 .define SPRITE_MASK_WIDTH        %00000111
-.define SPRITE_MASK_MULTICOLOR   %00001000
+.define SPRITE_MASK_RESERVED     %00001000
 .define SPRITE_MASK_DOUBLE_WIDTH %00010000
-.define SPRITE_MASK_MIRROR_X     %00100000
-.define SPRITE_MASK_MIRROR_Y     %01000000
+.define SPRITE_MASK_MULTICOLOR   %00100000
+.define SPRITE_MASK_MIRROR_X     %01000000
+.define SPRITE_MASK_MIRROR_Y     %10000000

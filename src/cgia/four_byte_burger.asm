@@ -273,7 +273,7 @@ display_list_start:
 .repeat display_lines
 .byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::shared_color << 4), $00
 .byte   CGIA_DL_INS_LOAD_REG8 | ((CGIA_BCKGND_REGS::shared_color + 1) << 4), $00
-.byte   CGIA_DL_MODE_MULTICOLOR_BITMAP | CGIA_DL_STORE_BIT
+.byte   CGIA_DL_MODE_MULTICOLOR_BITMAP
 .byte   CGIA_DL_INS_EMPTY_LINES    ; duplicate each line one time
 .endrep
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT ; JMP to begin of DL and wait for Vertical BLank
