@@ -93,6 +93,28 @@ dest_ptr:   .res 2
         store #text_offset+180+40+20+80, dest_ptr
         jsr str_cpy
 
+        store #mode2_text, src_ptr
+        store #text_offset+360, dest_ptr
+        jsr str_cpy
+        store #mode2_dw_text, src_ptr
+        store #text_offset+360+40, dest_ptr
+        jsr str_cpy
+        store #mode2_mc_text, src_ptr
+        store #text_offset+360+40+20, dest_ptr
+        jsr str_cpy
+        store #mode2_dw_mc_text, src_ptr
+        store #text_offset+360+40+20+80, dest_ptr
+        jsr str_cpy
+        ldy #0
+        ldx #40+20+80+40 - 1
+:       tya
+        sta color_offset, y
+        txa
+        sta bkgnd_offset, y
+        iny
+        dex
+        bpl :-
+
         ; sync to vblank
 :       lda CGIA::raster
         bne :-
@@ -127,6 +149,14 @@ display_list:
 .byte   CGIA_DL_MODE_PALETTE_TEXT | CGIA_DL_MULTICOLOR_BIT
 .byte   CGIA_DL_MODE_PALETTE_TEXT | CGIA_DL_DOUBLE_WIDTH_BIT | CGIA_DL_MULTICOLOR_BIT
 
+.byte   $70           ; some space
+
+.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::flags << 4), $00
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT | CGIA_DL_DOUBLE_WIDTH_BIT
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT | CGIA_DL_MULTICOLOR_BIT
+.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT | CGIA_DL_DOUBLE_WIDTH_BIT | CGIA_DL_MULTICOLOR_BIT
+
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
 .word   display_list
 
@@ -153,3 +183,12 @@ mode0_mc_text:
 .byte "0 MULTICOLOR: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz", 252, 253, 254, 255, 0
 mode0_dw_mc_text:
 .byte "0 DW MC: ABCDEFGHijklmnopqrSTUVWXYZ", 248, 252, 253, 254, 255, 0
+
+mode2_text:
+.byte $12, ":012345ABCDEFGHijklmnopqrstuvwxyz", 248, 249, 252, 253, 254, 255, 0
+mode2_dw_text:
+.byte $12, " DOUBLE WIDTH ", 248, 252, 253, 254, 255, 0
+mode2_mc_text:
+.byte "2 MULTICOLOR: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz", 252, 253, 254, 255, 0
+mode2_dw_mc_text:
+.byte "2 DW MC: ABCDEFGHijklmnopqrSTUVWXYZ", 248, 252, 253, 254, 255, 0
