@@ -54,6 +54,10 @@ add_xex(text_80_columns)
 target_sources(text_80_columns PRIVATE
     cgia/text_80_columns.asm
 )
+add_xex(bitmap_modes)
+target_sources(bitmap_modes PRIVATE
+    cgia/bitmap_modes.asm
+)
 
 # add_xex(pwm_samples)
 # target_sources(pwm_samples PRIVATE

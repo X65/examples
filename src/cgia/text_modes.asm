@@ -105,6 +105,7 @@ dest_ptr:   .res 2
         store #mode2_dw_mc_text, src_ptr
         store #text_offset+360+40+20+80, dest_ptr
         jsr str_cpy
+        _a8
         ldy #0
         ldx #40+20+80+40 - 1
 :       tya
