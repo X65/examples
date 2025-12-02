@@ -8,7 +8,7 @@
     0 - empty lines filled with fill color
         bits 6-4 - how many
         bit 7 - DLI
-    1 - duplicate lines - copy last raster line n-times
+    1 - [TBD]
     2 - JMP Display List (Load DL offset address)
         - DLI bit set - wait for Vertical Blank
     3 - Load Memory - bits 4-7 flag which offsets will follow
@@ -19,26 +19,30 @@
     4 - Load 8 bit value to Register Offset
     5 - Load 16 bit value to Register Offset
         bits 6-4 - register index
-    ...
+    6 - [TBD]
+    7 - [TBD]
 
     bit 3 set (8-F) - generate mode row:
     Bits 0-2 encode the mode:
-    0 - [TBD]
-    1 - [TBD]
-    2 - text/tile mode
-    3 - bitmap mode
-    4 - multicolor text/tile mode
-    5 - multicolor bitmap mode
+    0 - palette text/tile mode
+    1 - palette bitmap mode
+    2 - attribute text/tile mode
+    3 - attribute bitmap mode
+    4 - [TBD]
+    5 - [TBD]
     6 - Hold-and-Modify (HAM) mode
     7 - affine transform chunky pixel mode
 
     bit 7 - trigger DLI - Display List Interrupt
 */
 
-#define CGIA_DL_MODE_BIT  0b00001000
-#define CGIA_DL_DLI_BIT   0b10000000
-#define CGIA_DL_STORE_BIT 0b01000000
+#define CGIA_DL_MODE_BIT         0b00001000
+#define CGIA_DL_DOUBLE_WIDTH_BIT 0b00010000
+#define CGIA_DL_MULTICOLOR_BIT   0b00100000
+#define CGIA_DL_RESERVED_BIT     0b01000000
+#define CGIA_DL_DLI_BIT          0b10000000
 
+// Multicolor encoding
 // https://csbruce.com/cbm/hacking/hacking12.txt
 /*
    00   background color
@@ -62,7 +66,7 @@
           11 - Modify Blue channel
 
           S: sign, 0 +delta, 1 -delta
-          DDD: delta (0 offsetted, so 000 means 1)
+          DDD: delta (2's complement, with above sign bit)
 */
 
 #define CGIA_PLANE_REGS_NO (16)
@@ -79,8 +83,7 @@ union cgia_plane_regs_t
         int8_t offset_x;
         int8_t scroll_y;
         int8_t offset_y;
-        uint8_t shared_color[2];
-        uint8_t reserved[6];
+        uint8_t color[8];
     } bckgnd;
 
     struct cgia_ham_regs
@@ -89,7 +92,7 @@ union cgia_plane_regs_t
         uint8_t border_columns;
         uint8_t row_height;
         uint8_t reserved[5];
-        uint8_t base_color[8];
+        uint8_t color[8];
     } ham;
 
     struct cgia_affine_regs
@@ -127,10 +130,21 @@ union cgia_plane_regs_t
 // 1-2 - [RESERVED]
 // 3 - border is transparent
 // 4 - double-width pixel
-// 5-7 - [RESERVED]
+// 5 - multicolor-pixel
+// 6,7 - pixel bits: 00 - 1bit, 2 colors; 01 - 2bit, 4 colors;
+//                   10 - 3bit, 8 colors; 11 - 4bit, 8 colors + half-bright
 #define PLANE_MASK_TRANSPARENT        0b00000001
 #define PLANE_MASK_BORDER_TRANSPARENT 0b00001000
 #define PLANE_MASK_DOUBLE_WIDTH       0b00010000
+#define PLANE_MASK_MULTICOLOR         0b00100000
+#define PLANE_MASK_PIXEL_BITS         0b11000000
+
+#define PLANE_MASK_FROM_DL (PLANE_MASK_DOUBLE_WIDTH | PLANE_MASK_MULTICOLOR)
+
+#define PLANE_BITS_1BPP (0b00 << 6)
+#define PLANE_BITS_2BPP (0b01 << 6)
+#define PLANE_BITS_3BPP (0b10 << 6)
+#define PLANE_BITS_4BPP (0b11 << 6)
 
 struct cgia_t
 {
@@ -151,7 +165,7 @@ struct cgia_t
     uint8_t _reserved[16];
     // -------------------------------------------------------------------
     uint8_t planes; // [TTTTEEEE] EEEE - enable bits, TTTT - type (0 bckgnd, 1 sprite)
-    uint8_t order;  // [xxxOOOOO] OOOOO - plane order permutation
+    uint8_t order;  // plane order permutation - SJT ordering
     uint8_t _pln_reserved1[4 - 2];
 
     uint8_t back_color;
@@ -200,13 +214,14 @@ struct cgia_sprite_t
 
 // sprite flags:
 // 0-2 - width in bytes
-// 3 - multicolor
+// 3 - [RESERVED]
 // 4 - double-width
-// 5 - mirror X
-// 6 - mirror Y
-// 7 - [RESERVED]
+// 5 - multicolor
+// 6 - mirror X
+// 7 - mirror Y
 #define SPRITE_MASK_WIDTH        0b00000111
-#define SPRITE_MASK_MULTICOLOR   0b00001000
+#define SPRITE_MASK_RESERVED     0b00001000
 #define SPRITE_MASK_DOUBLE_WIDTH 0b00010000
-#define SPRITE_MASK_MIRROR_X     0b00100000
-#define SPRITE_MASK_MIRROR_Y     0b01000000
+#define SPRITE_MASK_MULTICOLOR   0b00100000
+#define SPRITE_MASK_MIRROR_X     0b01000000
+#define SPRITE_MASK_MIRROR_Y     0b10000000

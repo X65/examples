@@ -17,8 +17,8 @@ void init()
     CGIA.plane[0].bckgnd.offset_x = 0;
     CGIA.plane[0].bckgnd.scroll_y = 0;
     CGIA.plane[0].bckgnd.offset_y = 0;
-    CGIA.plane[0].bckgnd.shared_color[0] = 0;
-    CGIA.plane[0].bckgnd.shared_color[1] = 0;
+    CGIA.plane[0].bckgnd.color[0] = 0;
+    CGIA.plane[0].bckgnd.color[1] = 0;
 
     for (i = 0; i < sizeof(tile_map); ++i)
     {
