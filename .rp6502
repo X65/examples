@@ -1,0 +1,4 @@
+[RP6502]
+device = /dev/ttyACM0
+term = True
+

@@ -1,0 +1,6 @@
+[
+  {
+    "name": "RP6502",
+    "toolchainFile": "${workspaceRoot}/cc65-toolchain.cmake"
+  }
+]

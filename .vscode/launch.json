@@ -5,9 +5,9 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Build & Debug",
       "type": "cc65-dbg",
       "request": "launch",
-      "name": "Build & Debug",
       "program": "${command:cmake.launchTargetPath}",
       "command": "/home/smoku/.local/bin/emu",
       "args": ["--dap", "${command:cmake.launchTargetPath}"],
@@ -15,6 +15,19 @@
       "cwd": "${workspaceFolder}",
       "trace": false,
       "preLaunchTask": "CMake: build"
+    },
+    {
+      "name": "Build & Upload",
+      "type": "debugpy",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "program": "${workspaceFolder}/rp6502.py",
+      "args": [
+        "-c",
+        "${workspaceFolder}/.rp6502",
+        "upload",
+        "${command:cmake.launchTargetPath}"
+      ]
     }
   ]
 }

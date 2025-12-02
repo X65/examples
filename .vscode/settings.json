@@ -1,4 +1,6 @@
 {
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "cmake.showSystemKits": false,
   "files.associations": {
     "*.asm": "rpw65"
   }
