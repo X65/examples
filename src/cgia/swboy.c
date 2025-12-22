@@ -8,6 +8,8 @@ void init()
     // disable all planes, so CGIA does not go haywire during reconfiguration
     CGIA.planes = 0b00000000;
 
+    CGIA.back_color = 0; // black background
+
     // configure plane0
     CGIA.plane[0].bckgnd.flags = PLANE_MASK_DOUBLE_WIDTH; // multicolor double-width
     CGIA.plane[0].bckgnd.row_height = 7;                  // 8 rows per character
