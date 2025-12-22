@@ -154,6 +154,14 @@ nmi:
     lda sin_table, x
     sta dl0_offset+25 ; dy
 
+    ; clean text area
+    lda #bg_color
+    stz text_offset
+    ldx #text_offset
+    ldy #text_offset+1
+    lda #text_columns*text_rows-2
+    mvn 0,0
+
     ; copy prompt
     ldx #prompt
     ldy #text_offset
