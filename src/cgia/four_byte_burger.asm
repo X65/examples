@@ -18,6 +18,7 @@
 .include "../ria.asm"
 .include "../cgia.asm"
 .include "../macros.asm"
+.macpack generic
 
 .segment "INFO"
     .byte "Four-Byte Burger demo"
@@ -39,11 +40,31 @@ columns = 40
 column_width = 8
 cell_height = 1
 
+display_list = $8000
 display_lines = 120
 picture_lines = 295
 
-.segment "CODE"
+.zeropage
 
+lms:    .res 2
+lfs:    .res 2
+lbs:    .res 2
+dls:    .res 2
+
+picture_offset:
+.res   1
+scroll_direction:
+.res   1
+scroll_delay:
+.res   1
+dl_start:
+.res   2
+dl_end:
+.res   2
+dl_bak:
+.res   2
+
+.code
 .org $4000
 
 cgia_regs:
@@ -61,7 +82,7 @@ cgia_regs:
 .byte   $00, $00 ; not used
 .byte   $00  ; back_color
 .byte   $00, $00, $00 ; not used
-.word   live_display_list1  ; PLANE0 DL offset
+.word   display_list  ; PLANE0 DL offset
 .word   $0000  ; PLANE1 DL offset
 .word   $0000  ; PLANE2 DL offset
 .word   $0000  ; PLANE3 DL offset
@@ -94,7 +115,9 @@ reset:
         lda #$30
         xba
         lda #$00
-        tcs                     ; transfer $3000 to stack pointer
+        tcd                     ; transfer $3000 to direct page pointer
+        lda #$ff
+        tcs                     ; transfer $30ff to stack pointer
 
         ; First, disable all planes
         lda #0
@@ -107,11 +130,18 @@ cgia_init_loop:
         dex
         bpl cgia_init_loop
 
-        jsr create_color_table
+        jsr create_display_list
 
+        _a8
         ; set back color
         lda #178
         sta CGIA::back_color
+
+        ; initial scroll params
+        lda #5
+        sta scroll_delay
+        stz picture_offset
+        stz scroll_direction
 
         ; now enable plane 0
         lda #$01
@@ -123,18 +153,8 @@ cgia_init_loop:
 
 self:   bra self
 
-picture_offset:
-.byte   0
-scroll_direction:
-.byte   1
-scroll_delay:
-.byte   1
-
 vbl_handler:
-        ; set display list for this frame
-        ldx live_dl_offset
-        stx CGIA::offset0
-
+        _ai8
         ; delay scrolling every 5th frame
         dec scroll_delay
         bne vbl_exit
@@ -163,135 +183,150 @@ vbl_scroll_up:
 vbl_update:
         jsr update_display_list
 
-        lda live_dl
-        bne :+
-        inc live_dl
-        ldy #live_display_list2
-        bra :++
-:       stz live_dl
-        ldy #live_display_list1
-:       sty live_dl_offset
-        sty display_list_jmp
-
-        ; copy generated DL to Live
-        ldx #display_list
-        _a16
-        lda #(display_list_end - display_list)
-        mvn 0,0
-        _a8
-
 vbl_exit:
+        _a8
         sta CGIA::int_status    ; ack interrupts
         rti
 
-create_color_table:
+.a8
+.i16
+gen_mode_line:
+        lda #CGIA_DL_INS_LOAD_MEMORY | CGIA_DL_INS_LM_MEMORY_SCAN|CGIA_DL_INS_LM_FOREGROUND_SCAN|CGIA_DL_INS_LM_BACKGROUND_SCAN
+        sta display_list,x
+        inx
+        lda lms
+        sta display_list,x
+        inx
+        lda lms+1
+        sta display_list,x
+        inx
+        lda lfs
+        sta display_list,x
+        inx
+        lda lfs+1
+        sta display_list,x
+        inx
+        lda lbs
+        sta display_list,x
+        inx
+        lda lbs+1
+        sta display_list,x
+        inx
+
+        ; copy two REG8 values for shared colors
+        phy
         ldy #0
-        ldx #0
-create_color_table_loop:
-        lda dl_offset+7,y
-        cmp #CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::shared_color << 4)
-        beq :+
+        lda (dls),y
+        sta display_list,x
+        inx
+        iny
+        lda (dls),y
+        sta display_list,x
+        inx
+        iny
+        lda (dls),y
+        sta display_list,x
+        inx
+        iny
+        lda (dls),y
+        sta display_list,x
+        inx
+        ply
+
+        lda #CGIA_DL_MODE_ATTRIBUTE_BITMAP | CGIA_DL_MULTICOLOR_BIT | CGIA_DL_DOUBLE_WIDTH_BIT
+        sta display_list,x
+        inx
+
         rts
-:       iny                     ; skip over LOAD_REG8 instruction
-        lda dl_offset+7,y       ; load shared color 0
-        sta table_offset,x
-        inx
-        iny
-        iny                     ; skip over next LOAD_REG8 instruction
-        lda dl_offset+7,y       ; load shared color 0
-        sta table_offset,x
-        inx
-        iny
-        iny                     ; skip over MODE5 instruction
-        bra create_color_table_loop
 
+create_display_list:
+        _ai16
+        store #video_offset, lms
+        store #color_offset, lfs
+        store #bkgnd_offset, lbs
+        store #dl_offset+7, dls
 
-update_display_list_counter:
-.res    1
+        ldy #picture_lines
+        ldx #0
+        _a8
+:
+        jsr gen_mode_line
+        jsr gen_mode_line
+
+        _a16
+        lda lms
+        add #40
+        sta lms
+        lda lfs
+        add #40
+        sta lfs
+        lda lbs
+        add #40
+        sta lbs
+        lda dls
+        add #5
+        sta dls
+        _a8
+
+        dey
+        bne :-
+
+        lda #CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
+        sta display_list,x
+        inx
+        lda #<display_list
+        sta display_list,x
+        lda #>display_list
+        inx
+        sta display_list,x
+
+        rts
+
 
 update_display_list:
-        ; update memory scans with start line address
         _a16
-        ; multiply row offset by columns in row
+        _i8
+        
+        ; restore previous display list instruction
+        ldy #0
+        lda #CGIA_DL_INS_LOAD_MEMORY | CGIA_DL_INS_LM_MEMORY_SCAN|CGIA_DL_INS_LM_FOREGROUND_SCAN|CGIA_DL_INS_LM_BACKGROUND_SCAN
+        sta (dl_end),y
+        iny
+        lda dl_bak
+        sta (dl_end),y
+
+        ; each row takes 12 bytes in display list
+        ; but we scroll by two lines, thus we skip 24 bytes for each line offset
         lda picture_offset
         and #$00FF
         sta RIA::opera
-        ; offset in colors table (each row has two colors)
-        asl A
-        tay
-
-        lda #columns
+        lda #24
         sta RIA::operb
 
-        ; add to each memory scan
         lda RIA::mulab
-        clc
-        adc #video_offset
-        sta display_list_lms
-        lda RIA::mulab
-        clc
-        adc #color_offset
-        sta display_list_lfs
-        lda RIA::mulab
-        clc
-        adc #bkgnd_offset
-        sta display_list_lbs
-        _a8
+        add #display_list
 
-        ; copy the needed number of REG8 values
+        sta CGIA::offset0
+        sta dl_start
+
+        ; now we need to skip `display_lines` lines
+        ; and inject looping jump to end the display list
         lda #display_lines
-        sta update_display_list_counter
-        ldx #0
-update_display_list_loop:
-        lda table_offset,y
+        sta RIA::opera
+
+        lda dl_start
+        add RIA::mulab
+        sta dl_end
+
+        _ai8
+        ldy #0
+        lda #CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
+        sta (dl_end),y
         iny
-        inx                     ; REG8
-        sta display_list_start,x
-        inx                     ; REG8 value
-        lda table_offset,y
-        iny
-        inx                     ; REG8
-        sta display_list_start,x
-        inx                     ; REG8 value
-        inx                     ; MODE5
-        inx                     ; DUPL
-        dec update_display_list_counter
-        bne update_display_list_loop
+        _a16
+        lda (dl_end),y
+        sta dl_bak              ; backup old value
+        lda dl_start
+        sta (dl_end),y
 
         rts
-
-
-display_list:
-.byte   CGIA_DL_INS_LOAD_MEMORY | CGIA_DL_INS_LM_MEMORY_SCAN|CGIA_DL_INS_LM_FOREGROUND_SCAN|CGIA_DL_INS_LM_BACKGROUND_SCAN
-display_list_lms:
-.word   video_offset
-display_list_lfs:
-.word   color_offset
-display_list_lbs:
-.word   bkgnd_offset
-display_list_start:
-.repeat display_lines
-.byte   CGIA_DL_INS_LOAD_REG8 | (CGIA_BCKGND_REGS::shared_color << 4), $00
-.byte   CGIA_DL_INS_LOAD_REG8 | ((CGIA_BCKGND_REGS::shared_color + 1) << 4), $00
-.byte   CGIA_DL_MODE_ATTRIBUTE_BITMAP | CGIA_DL_MULTICOLOR_BIT | CGIA_DL_DOUBLE_WIDTH_BIT
-.byte   CGIA_DL_INS_EMPTY_LINES    ; duplicate each line one time
-.endrep
-.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT ; JMP to begin of DL and wait for Vertical BLank
-display_list_jmp:
-.word   display_list
-display_list_end:
-
-live_dl:
-.byte 0
-live_dl_offset:
-.word live_display_list1
-
-live_display_list1:
-.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
-.word   live_display_list1
-.res    display_list_end - display_list
-
-live_display_list2:
-.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
-.word   live_display_list2
-.res    display_list_end - display_list
