@@ -87,6 +87,8 @@ reset:
     clc
     xce         ; switch to native mode
 
+    _ai8
+
     ; disable all planes, so CGIA does not go haywire during reconfiguration
     store #0, CGIA::planes
 
@@ -131,6 +133,8 @@ sp_loop:
     sta spr_desc, x
     dex
     bpl sp_loop
+    stz sprite_frame
+    stz sprite_frame+1
 
     ; --- setup CGIA interrupts
     lda #Y_OFFS
