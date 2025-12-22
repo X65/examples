@@ -38,6 +38,8 @@ bg_color = 145
         sta RIA::stack
         lda #<chgen_offset
         sta RIA::stack
+        stz RIA::stack
+        stz RIA::stack
         lda #RIA_API_GET_CHARGEN
         sta RIA::op
 

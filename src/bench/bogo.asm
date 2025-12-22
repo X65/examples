@@ -52,6 +52,8 @@ reset:
         sta RIA::stack
         lda #<chgen_offset      ; low byte
         sta RIA::stack
+        stz RIA::stack
+        stz RIA::stack
         lda #RIA_API_GET_CHARGEN
         sta RIA::op
 

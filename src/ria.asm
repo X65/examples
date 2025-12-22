@@ -34,7 +34,7 @@
     ; Random Number Generator
     rng         .word
 
-    ; CPU Vectors Native
+    ; CPU Vectors (Native)
     cop_n       .addr
     brk_n       .addr
     abort_n     .addr
@@ -45,23 +45,22 @@
     ; Interrupt Controller IRQ status
     irq_status  .byte
 
-    ; CPU Vector Native
+    ; CPU Vector (Native)
     irq_n       .addr
 
     ; RIA816 API
+    op          .word
     stack       .byte
-    op          .byte
-    errno       .byte
-    busy        .byte
+    status      .byte
 
-    ; CPU Vector Emulation
+    ; CPU Vector (Emulation)
     cop_e       .addr
 
     ; Extension devices
     extio       .byte
     extmem      .byte
 
-    ; CPU Vector Emulation
+    ; CPU Vector (Emulation)
     abort_e     .addr
     nmi_e       .addr
     reset_e     .addr

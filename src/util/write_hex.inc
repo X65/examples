@@ -1,3 +1,6 @@
+.a8
+.i16
+
 .macro  write_hex_char
         ora #$30                ; '0'..'9' or ':'..'?'
         cmp #$3A                ; ':' = '9'+1
