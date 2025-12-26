@@ -68,7 +68,7 @@
 .endstruct
 
 .struct TIMERS
-    .org    $FF88
+    .org    $FF98
     ; CIA compatible timers
     ta_lo       .byte
     ta_hi       .byte
