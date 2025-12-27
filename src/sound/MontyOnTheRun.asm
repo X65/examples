@@ -74,7 +74,7 @@ bg_color = 145
 fg_color = 150
 
 
-SID_Base        = $FEC0
+SID_Base        = $80
 SID_V1_FreqL    = SID_Base + $0
 SID_V1_FreqH    = SID_Base + $1
 SID_V1_PulseL   = SID_Base + $2
@@ -108,7 +108,8 @@ SID_PadY        = SID_Base + $1A
 SID_V3_WaveOut  = SID_Base + $1B
 SID_V3_ADSROut  = SID_Base + $1C
 
-MIRROR_base = $80
+SGU_base = $FEC0
+DUTY_shifter = SID_Base-2
 
 .code
 .org $200
@@ -129,7 +130,7 @@ MIRROR_base = $80
         jsr cgia_init_text
 
 		ldx #$1C
-:		stz MIRROR_base, x
+:		stz SID_Base, x
 		dex
 		bpl :-
 
@@ -163,85 +164,9 @@ play:
 	WAI ;Is it time for another set of notes?
 	lda TIMERS::icr ; Acknowledge the interrupt
 
-        lda MIRROR_base+1
-        ldx #0
-        jsr write_hex
-		lda MIRROR_base+0
-		ldx #2
-		jsr write_hex
-        lda MIRROR_base+3
-        ldx #5
-        jsr write_hex
-		lda MIRROR_base+2
-		ldx #7
-		jsr write_hex
-		lda MIRROR_base+4
-		ldx #10
-		jsr write_hex
-		lda MIRROR_base+5
-		ldx #13
-		jsr write_hex
-		lda MIRROR_base+6
-		ldx #15
-		jsr write_hex
+    jsr convert_sid_to_sgu
 
-        lda MIRROR_base+7+1
-        ldx #40+0
-        jsr write_hex
-		lda MIRROR_base+7+0
-		ldx #40+2
-		jsr write_hex
-        lda MIRROR_base+7+3
-        ldx #40+5
-        jsr write_hex
-		lda MIRROR_base+7+2
-		ldx #40+7
-		jsr write_hex
-		lda MIRROR_base+7+4
-		ldx #40+10
-		jsr write_hex
-		lda MIRROR_base+7+5
-		ldx #40+13
-		jsr write_hex
-		lda MIRROR_base+7+6
-		ldx #40+15
-		jsr write_hex
-
-        lda MIRROR_base+14+1
-        ldx #80+0
-        jsr write_hex
-		lda MIRROR_base+14+0
-		ldx #80+2
-		jsr write_hex
-        lda MIRROR_base+14+3
-        ldx #80+5
-        jsr write_hex
-		lda MIRROR_base+14+2
-		ldx #80+7
-		jsr write_hex
-		lda MIRROR_base+14+4
-		ldx #80+10
-		jsr write_hex
-		lda MIRROR_base+14+5
-		ldx #80+13
-		jsr write_hex
-		lda MIRROR_base+14+6
-		ldx #80+15
-		jsr write_hex
-
-        lda MIRROR_base+21+1
-        ldx #120+0
-        jsr write_hex
-		lda MIRROR_base+21+0
-		ldx #120+2
-		jsr write_hex
-        lda MIRROR_base+21+2
-        ldx #120+5
-        jsr write_hex
-		lda MIRROR_base+21+3
-		ldx #120+8
-		jsr write_hex
-
+	jsr write_sid_registers
 
 	JMP play
 
@@ -270,17 +195,12 @@ _1: lda songs,x
 
 	lda #$00			; SID reset
 	sta SID_V1_Ctrl
-	sta SID_V1_Ctrl-SID_Base+MIRROR_base
 	sta SID_V2_Ctrl
-	sta SID_V2_Ctrl-SID_Base+MIRROR_base
 	sta SID_V3_Ctrl
-	sta SID_V3_Ctrl-SID_Base+MIRROR_base
 	sta SID_FilterCtrl
-	sta SID_FilterCtrl-SID_Base+MIRROR_base
 
 	lda #$0f			; max volume
 	sta SID_VolFiltMode
-	sta SID_VolFiltMode-SID_Base+MIRROR_base
 
 	lda #$40			; bit 6 = init music
 	sta mstatus
@@ -331,15 +251,11 @@ _off:
 
 	lda #$00			; clear control regs
 	sta SID_V1_Ctrl
-	sta SID_V1_Ctrl-SID_Base+MIRROR_base
 	sta SID_V2_Ctrl
-	sta SID_V2_Ctrl-SID_Base+MIRROR_base
 	sta SID_V3_Ctrl
-	sta SID_V3_Ctrl-SID_Base+MIRROR_base
 
 	lda #$0f			; max volume
 	sta SID_VolFiltMode
-	sta SID_VolFiltMode-SID_Base+MIRROR_base
 
 	lda #$80			; next time, go to end
 	sta mstatus
@@ -487,12 +403,10 @@ getpitch:
 
 	ldy tmpregofst		; y = sid reg offset
 	sta SID_V1_FreqH,y			; freq hi
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 	sta savefreqhi,x
 
 	lda tempfreq
 	sta SID_V1_FreqL,y			; freq lo
-	sta SID_V1_FreqL-SID_Base+MIRROR_base,y
 	sta savefreqlo,x
 	jmp getinstrument
 
@@ -520,23 +434,18 @@ getinstrument:
 	lda instr+2,x
 	and appendfl		; if append, disable gate bit
 	sta SID_V1_Ctrl,y			; control reg
-	sta SID_V1_Ctrl-SID_Base+MIRROR_base,y
 
 	lda instr+0,x		; (0) pulse width lo
 	sta SID_V1_PulseL,y
-	sta SID_V1_PulseL-SID_Base+MIRROR_base,y
 
 	lda instr+1,x		; (1) pulse width hi
 	sta SID_V1_PulseH,y
-	sta SID_V1_PulseH-SID_Base+MIRROR_base,y
 
 	lda instr+3,x		; (3) attack/decay
 	sta SID_V1_AttDecay,y
-	sta SID_V1_AttDecay-SID_Base+MIRROR_base,y
 
 	lda instr+4,x		; (4) sustain/release
 	sta SID_V1_SusRel,y
-	sta SID_V1_SusRel-SID_Base+MIRROR_base,y
 
 	ldx tempstore	    ; x = instrument no.
 	lda tempctrl		; instrument control value
@@ -577,13 +486,10 @@ soundwork:
 	lda voicectrl,x
 	and #$fe			; start release by disabling gate bit
 	sta SID_V1_Ctrl,y
-	sta SID_V1_Ctrl-SID_Base+MIRROR_base,y
 
 	lda #$00
 	sta SID_V1_AttDecay,y			; AD = 0
-	sta SID_V1_AttDecay-SID_Base+MIRROR_base,y
 	sta SID_V1_SusRel,y			; SR = 0
-	sta SID_V1_SusRel-SID_Base+MIRROR_base,y
 
 ;	-------------------------------------------------------
 ;	Vibrato
@@ -661,10 +567,8 @@ StoreAndLoadSID:
 	ldy tmpregofst		; store and load SID
 	lda tmpvfrqlo
 	sta SID_V1_FreqL,y
-	sta SID_V1_FreqL-SID_Base+MIRROR_base,y
 	lda tmpvfrqhi
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 
 
 ;	-------------------------------------------------------
@@ -726,11 +630,9 @@ dumpulse:
 	pla					; -> pwlo
 	sta instr+1,y
 	sta SID_V1_PulseH,x			; PWHI
-	sta SID_V1_PulseH-SID_Base+MIRROR_base,x
 	pla					; -> pwhi
 	sta instr+0,y
 	sta SID_V1_PulseL,x			; PWLO
-	sta SID_V1_PulseL-SID_Base+MIRROR_base,x
 	ldx tempstore
 
 ;	-------------------------------------------------------
@@ -754,12 +656,10 @@ portamento:
 	sbc tempstore    ;current frequency
 	sta savefreqlo,x
 	sta SID_V1_FreqL,y
-	sta SID_V1_FreqL-SID_Base+MIRROR_base,y
 	lda savefreqhi,x
 	sbc #$00         ;(word arithmetic)
 	sta savefreqhi,x
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 	jmp drums
 
 _up:
@@ -768,12 +668,10 @@ _up:
 	adc tempstore    ;current frequency
 	sta savefreqlo,x
 	sta SID_V1_FreqL,y
-	sta SID_V1_FreqL-SID_Base+MIRROR_base,y
 	lda savefreqhi,x
 	adc #$00
 	sta savefreqhi,x
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 
 ;	-------------------------------------------------------
 ;	drums (bit 0 of instrfx)
@@ -806,7 +704,6 @@ drums:
 	lda savefreqhi,x	; not the first hit
 	dec savefreqhi,x	; decrease freqhi
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 
 	lda voicectrl,x		; if ctrlreg is 0 then it's all noise
 	and #$fe			; otherwise, ctrl waveform
@@ -815,12 +712,10 @@ drums:
 _first:
 	lda savefreqhi,x ;noise is used for
 	sta SID_V1_FreqH,y      ;the first vbl also
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 	lda #$80         ;(set noise)
 
 _nf:
 	sta SID_V1_Ctrl,y
-	sta SID_V1_Ctrl-SID_Base+MIRROR_base,y
 
 ;	-------------------------------------------------------
 ;	skydive (bit 1 of instrfx)
@@ -844,7 +739,6 @@ skydive:
 	dec savefreqhi,x ;decr and save the
 	ldy tmpregofst   ;high byte freq
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 
 ;	-------------------------------------------------------
 ;	arpeggio (bit 2 of instrfx)
@@ -875,10 +769,8 @@ OddNote:
 	lda notefreqsh,y
 	ldy tmpregofst
 	sta SID_V1_FreqH,y
-	sta SID_V1_FreqH-SID_Base+MIRROR_base,y
 	lda tempfreq
 	sta SID_V1_FreqL,y
-	sta SID_V1_FreqL-SID_Base+MIRROR_base,y
 
 
 ;==========
@@ -1672,6 +1564,188 @@ instr =*
  .byte $00,$00,$11,$0a,$fa,$00,$00,$05
  .byte $00,$08,$41,$37,$40,$02,$00,$00
  .byte $00,$08,$11,$07,$70,$02,$00,$00
+
+write_sid_registers:
+        lda SID_Base+1
+        ldx #0
+        jsr write_hex
+		lda SID_Base+0
+		ldx #2
+		jsr write_hex
+        lda SID_Base+3
+        ldx #5
+        jsr write_hex
+		lda SID_Base+2
+		ldx #7
+		jsr write_hex
+		lda SID_Base+4
+		ldx #10
+		jsr write_hex
+		lda SID_Base+5
+		ldx #13
+		jsr write_hex
+		lda SID_Base+6
+		ldx #15
+		jsr write_hex
+
+        lda SID_Base+7+1
+        ldx #40+0
+        jsr write_hex
+		lda SID_Base+7+0
+		ldx #40+2
+		jsr write_hex
+        lda SID_Base+7+3
+        ldx #40+5
+        jsr write_hex
+		lda SID_Base+7+2
+		ldx #40+7
+		jsr write_hex
+		lda SID_Base+7+4
+		ldx #40+10
+		jsr write_hex
+		lda SID_Base+7+5
+		ldx #40+13
+		jsr write_hex
+		lda SID_Base+7+6
+		ldx #40+15
+		jsr write_hex
+
+        lda SID_Base+14+1
+        ldx #80+0
+        jsr write_hex
+		lda SID_Base+14+0
+		ldx #80+2
+		jsr write_hex
+        lda SID_Base+14+3
+        ldx #80+5
+        jsr write_hex
+		lda SID_Base+14+2
+		ldx #80+7
+		jsr write_hex
+		lda SID_Base+14+4
+		ldx #80+10
+		jsr write_hex
+		lda SID_Base+14+5
+		ldx #80+13
+		jsr write_hex
+		lda SID_Base+14+6
+		ldx #80+15
+		jsr write_hex
+
+        lda SID_Base+21+1
+        ldx #120+0
+        jsr write_hex
+		lda SID_Base+21+0
+		ldx #120+2
+		jsr write_hex
+        lda SID_Base+21+2
+        ldx #120+5
+        jsr write_hex
+		lda SID_Base+21+3
+		ldx #120+8
+		jsr write_hex
+
+		rts
+
+convert_ctl:
+        tax                     ; save original control byte in .X
+		and #%00010000 ; triangle wave?
+		beq :+
+		lda #3
+		sta SGU_base+32+4
+:       txa
+        and #%00100000 ; sawtooth wave?
+		beq :+
+		lda #1
+		sta SGU_base+32+4
+:       txa
+		and #%01000000 ; pulse wave?
+		beq :+
+		lda #0
+		sta SGU_base+32+4
+:       txa
+		and #%10000000 ; noise wave?
+		beq :+
+		lda #4
+		sta SGU_base+32+4
+:       txa
+        and #%00000100 ; ring mod?
+		beq :+
+		lda SGU_base+32+4
+		ora #$10
+		sta SGU_base+32+4
+:
+		rts
+
+convert_duty:
+        lda DUTY_shifter+1
+		asl A
+		asl A
+		asl A
+		sta DUTY_shifter+1
+		lda DUTY_shifter
+		and #$07
+		ora DUTY_shifter+1
+		sta SGU_base+32+8
+		rts
+
+convert_sid_to_sgu:
+        lda SID_VolFiltMode
+		and #$0f
+        asl A
+		asl A
+		asl A
+		tay   ; cache in .Y
+
+        lda #0
+		sta SGU_base+0 ; select channel 0
+        lda SID_V1_FreqL
+		sta SGU_base+32+0
+        lda SID_V1_FreqH
+		sta SGU_base+32+1
+        lda SID_V1_PulseL
+		sta DUTY_shifter
+		lda SID_V1_PulseH
+		sta DUTY_shifter+1
+		jsr convert_duty
+        lda SID_V1_Ctrl
+		jsr convert_ctl
+		tya
+		sta SGU_base+32+2
+
+        lda #1
+		sta SGU_base+0 ; select channel 1
+        lda SID_V2_FreqL
+		sta SGU_base+32+0
+        lda SID_V2_FreqH
+		sta SGU_base+32+1
+        lda SID_V2_PulseL
+		sta DUTY_shifter
+		lda SID_V1_PulseH
+		sta DUTY_shifter+1
+		jsr convert_duty
+        lda SID_V2_Ctrl
+		jsr convert_ctl
+		tya
+		sta SGU_base+32+2
+
+        lda #2
+		sta SGU_base+0 ; select channel 2
+        lda SID_V3_FreqL
+		sta SGU_base+32+0
+        lda SID_V3_FreqH
+		sta SGU_base+32+1
+        lda SID_V3_PulseL
+		sta DUTY_shifter
+		lda SID_V1_PulseH
+		sta DUTY_shifter+1
+		jsr convert_duty
+        lda SID_V3_Ctrl
+		jsr convert_ctl
+		tya
+		sta SGU_base+32+2
+
+        rts
 
 .include "../cgia/cgia_init.inc"
 .include "../util/write_hex.inc"
