@@ -1678,14 +1678,13 @@ convert_ctl:
 		rts
 
 convert_duty:
-        lda DUTY_shifter+1
-		asl A
-		asl A
-		asl A
-		sta DUTY_shifter+1
-		lda DUTY_shifter
-		and #$07
-		ora DUTY_shifter+1
+        asl DUTY_shifter
+		rol DUTY_shifter+1
+		asl DUTY_shifter
+		rol DUTY_shifter+1
+		asl DUTY_shifter
+		rol DUTY_shifter+1
+		lda DUTY_shifter+1
 		sta SGU_base+32+8
 		rts
 
@@ -1721,7 +1720,7 @@ convert_sid_to_sgu:
 		sta SGU_base+32+1
         lda SID_V2_PulseL
 		sta DUTY_shifter
-		lda SID_V1_PulseH
+		lda SID_V2_PulseH
 		sta DUTY_shifter+1
 		jsr convert_duty
         lda SID_V2_Ctrl
@@ -1737,7 +1736,7 @@ convert_sid_to_sgu:
 		sta SGU_base+32+1
         lda SID_V3_PulseL
 		sta DUTY_shifter
-		lda SID_V1_PulseH
+		lda SID_V3_PulseH
 		sta DUTY_shifter+1
 		jsr convert_duty
         lda SID_V3_Ctrl
