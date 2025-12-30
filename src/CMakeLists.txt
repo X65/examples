@@ -71,9 +71,13 @@ add_xex(opl)
 target_sources(opl PRIVATE
     sound/opl.asm
 )
-add_xex(MontyOnTheRun)
-target_sources(MontyOnTheRun PRIVATE
+add_xex(MontyOnTheRun.sid)
+target_sources(MontyOnTheRun.sid PRIVATE
     sound/MontyOnTheRun.asm
+)
+add_xex(Driller.sid)
+target_sources(Driller.sid PRIVATE
+    sound/Driller.asm
 )
 
 add_xex(hello_uart)
