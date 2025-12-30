@@ -1,5 +1,5 @@
 .a8
-.i16
+.i8
 
 .macro  write_hex_char
         ora #$30                ; '0'..'9' or ':'..'?'

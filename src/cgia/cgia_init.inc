@@ -1,5 +1,8 @@
 .define CGIA_PLANES_USED 1
 
+.a8
+.i8
+
 cgia_init_text:
         clc
         xce                     ; switch to native mode

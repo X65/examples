@@ -7,11 +7,11 @@
 
 ; You need to merge this code compiled to .xex with actual .sid file
 ; i.e.
-; ../tools/xex-filter.pl -o ./build/Driller.sid.xex -a \$0882 -b src/sound/Driller.sid
-; ../tools/xex-filter.pl -o ./build/Driller.xex ./build/src/Driller.sid.xex ./build/Driller.sid.xex
+; ../tools/xex-filter.pl -o ./build/Mystery_Cannon.sid.xex -a \$0F82 -b src/sound/Mystery_Cannon.sid
+; ../tools/xex-filter.pl -o ./build/Mystery_Cannon.xex ./build/src/Mystery_Cannon.sid.xex ./build/Mystery_Cannon.sid.xex
 
 .segment "INFO"
-    .byte "/MUSICIANS/G/Gray_Matt/Driller.sid"
+    .byte "/MUSICIANS/M/Manganoid/Mystery_Cannon_2SID.sid"
 
 .import __MAIN_START__
 .segment "VECTORS"
@@ -32,11 +32,14 @@ bkgnd_offset = $9800
 bg_color = 145
 fg_color = 150
 
-LOADADDRESS = $900 - $7E ; adjust for PSID v2 header
-INITMUSIC   = $15E0
-PLAYMUSIC   = $0E46
+LOADADDRESS = $1000 - $7E ; adjust for PSID v3 header
+INITMUSIC   = $1000
+PLAYMUSIC   = $1003
 
 SID_Base        = $D400
+SID2_Base       = $D420
+SID2_offset     = SID2_Base - SID_Base
+
 SID_V1_FreqL    = SID_Base + $0
 SID_V1_FreqH    = SID_Base + $1
 SID_V1_PulseL   = SID_Base + $2
@@ -103,6 +106,7 @@ play:
         wai                     ; Is it time for another set of notes?
         lda TIMERS::icr         ; Acknowledge the interrupt
         jsr convert_sid_to_sgu
+
         jsr display_sid_registers
         jmp play
 
@@ -185,6 +189,85 @@ display_sid_registers:
 		lda SID_Base+21+3
 		ldx #120+8
 		jsr write_hex
+;
+        lda SID2_Base+1
+        ldx #20+0
+        jsr write_hex
+		lda SID2_Base+0
+		ldx #20+2
+		jsr write_hex
+        lda SID2_Base+3
+        ldx #20+5
+        jsr write_hex
+		lda SID2_Base+2
+		ldx #20+7
+		jsr write_hex
+		lda SID2_Base+4
+		ldx #20+10
+		jsr write_hex
+		lda SID2_Base+5
+		ldx #20+13
+		jsr write_hex
+		lda SID2_Base+6
+		ldx #20+15
+		jsr write_hex
+
+        lda SID2_Base+7+1
+        ldx #60+0
+        jsr write_hex
+		lda SID2_Base+7+0
+		ldx #60+2
+		jsr write_hex
+        lda SID2_Base+7+3
+        ldx #60+5
+        jsr write_hex
+		lda SID2_Base+7+2
+		ldx #60+7
+		jsr write_hex
+		lda SID2_Base+7+4
+		ldx #60+10
+		jsr write_hex
+		lda SID2_Base+7+5
+		ldx #60+13
+		jsr write_hex
+		lda SID2_Base+7+6
+		ldx #60+15
+		jsr write_hex
+
+        lda SID2_Base+14+1
+        ldx #100+0
+        jsr write_hex
+		lda SID2_Base+14+0
+		ldx #100+2
+		jsr write_hex
+        lda SID2_Base+14+3
+        ldx #100+5
+        jsr write_hex
+		lda SID2_Base+14+2
+		ldx #100+7
+		jsr write_hex
+		lda SID2_Base+14+4
+		ldx #100+10
+		jsr write_hex
+		lda SID2_Base+14+5
+		ldx #100+13
+		jsr write_hex
+		lda SID2_Base+14+6
+		ldx #100+15
+		jsr write_hex
+
+        lda SID2_Base+21+1
+        ldx #140+0
+        jsr write_hex
+		lda SID2_Base+21+0
+		ldx #140+2
+		jsr write_hex
+        lda SID2_Base+21+2
+        ldx #140+5
+        jsr write_hex
+		lda SID2_Base+21+3
+		ldx #140+8
+		jsr write_hex
 
 		rts
 
@@ -217,9 +300,39 @@ convert_sid_to_sgu:
 		lda SID_FilterCtrl
 		jsr convert_3_off
 
+        ; SID 2
+        ldx #24+SID2_offset
+		jsr prepare_vol_shifter
+		ldx #21+SID2_offset
+		jsr prepare_filters
+
+		inc SGU_base+0
+		ldx #0+SID2_offset            ; SID2 Voice 1 offset
+		jsr convert_sid_channel
+		lda SID_FilterCtrl+SID2_offset
+		and #%00000001
+		jsr convert_filter
+
+		inc SGU_base+0
+		ldx #7+SID2_offset            ; SID2 Voice 2 offset
+		jsr convert_sid_channel
+		lda SID_FilterCtrl+SID2_offset
+		and #%00000010
+		jsr convert_filter
+
+		inc SGU_base+0
+		ldx #14+SID2_offset           ; SID2 Voice 3 offset
+		jsr convert_sid_channel
+		lda SID_FilterCtrl+SID2_offset
+		and #%00000100
+		jsr convert_filter
+		lda SID_FilterCtrl
+		jsr convert_3_off+SID2_offset
+
 		rts
 
 .include "./sid.inc"
 
 .include "../cgia/cgia_init.inc"
 .include "../util/write_hex.inc"
+

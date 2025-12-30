@@ -79,6 +79,10 @@ add_xex(Driller.sid)
 target_sources(Driller.sid PRIVATE
     sound/Driller.asm
 )
+add_xex(Mystery_Cannon.sid)
+target_sources(Mystery_Cannon.sid PRIVATE
+    sound/Mystery_Cannon.asm
+)
 
 add_xex(hello_uart)
 target_sources(hello_uart PRIVATE
