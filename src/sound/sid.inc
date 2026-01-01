@@ -28,6 +28,7 @@ prepare_filters:
         inx
         lda SID_Base,x
         and #$f0
+        lsr A
         sta FILTER_RES
         lsr A
         lsr A
@@ -36,12 +37,27 @@ prepare_filters:
         ora FILTER_RES
         sta FILTER_RES
 
+        stz FILTER_EN
         inx
         lda SID_Base,x
-        and #$F0
-        asl A
-        sta FILTER_EN
-
+        and #%01000000          ; HP
+		beq :+
+		lda FILTER_EN
+		ora #%01000000
+		sta FILTER_EN
+:       lda SID_Base,x
+        and #%00100000          ; BP
+		beq :+
+		lda FILTER_EN
+		ora #%10000000
+		sta FILTER_EN
+:	    lda SID_Base,x
+        and #%00010000          ; LP
+		beq :+
+		lda FILTER_EN
+		ora #%00100000
+		sta FILTER_EN
+:
         rts
 
 convert_filter:
@@ -116,11 +132,12 @@ convert_gate:
         lda SID_V1_Ctrl,x
 		and #%00000001
 		bne :+
-		lda #$01
-		sta SGU_base+32+$14 ; speed lo
 		lda SID_V1_SusRel,x
 		and #$0f
+		asl A
 		sta SGU_base+32+$15 ; speed hi
+		lda #$01
+		sta SGU_base+32+$14 ; speed lo
 		lda #$01
 		sta SGU_base+32+$16 ; amount
 		lda #$00
@@ -143,6 +160,7 @@ convert_sid_channel:
 		lda SID_V1_PulseL,x
 		sta DUTY_shifter
 		lda SID_V1_PulseH,x
+		and #$0f
 		sta DUTY_shifter+1
 
         asl DUTY_shifter
@@ -161,11 +179,14 @@ convert_sid_channel:
 		jsr convert_gate
 
 		; convert volume
+		lda SID_V1_Ctrl,x
+		and #%00000001
+		beq :+
 		lda SID_V1_SusRel,x
         lsr A
         lsr A
 		clc
 		adc VOL_shifter
 		sta SGU_base+32+2
-
+:
         rts
