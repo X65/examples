@@ -71,53 +71,79 @@ convert_filter:
         lda FILTER_FC+1
         sta SGU_base+32+7       ; cutoff hi
 
-        lda FILTER_EN
-        ora SGU_base+32+4
+        lda SGU_base+32+4
+		and #$1f
+        ora FILTER_EN
         sta SGU_base+32+4       ; enable filters
 
-        rts
+		rts
 :
         stz SGU_base+32+9       ; disable resonator
         stz SGU_base+32+6       ; cutoff lo
         stz SGU_base+32+7       ; cutoff hi
 
+        lda SGU_base+32+4
+		and #$1f
+        sta SGU_base+32+4       ; disable filters
+
         rts
 
 convert_ctl:
-		lda SID_V1_Ctrl,x
+        lda SID_V1_Ctrl,x
+		and #%10000000 ; noise wave? - dominates all, select first
+		beq :+
+		lda SGU_base+32+4
+		and #$f8
+		ora #4
+		sta SGU_base+32+4
+		bra @ring
+:       lda SID_V1_Ctrl,x
+		and #%01000000 ; pulse wave? - if you picked pulse, you want duty cycle control
+		beq :+
+		lda SGU_base+32+4
+		and #$f8
+		sta SGU_base+32+4
+		bra @ring
+:       lda SID_V1_Ctrl,x
+        and #%00100000 ; sawtooth wave? - saw+tri still looks mostly like saw
+		beq :+
+		lda SGU_base+32+4
+		and #$f8
+		ora #1
+		sta SGU_base+32+4
+		bra @ring
+:		lda SID_V1_Ctrl,x
 		and #%00010000 ; triangle wave?
 		beq :+
-		lda #3
+		lda SGU_base+32+4
+		and #$f8
+		ora #3
 		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-        and #%00100000 ; sawtooth wave?
-		beq :+
-		lda #1
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-		and #%01000000 ; pulse wave?
-		beq :+
-		lda #0
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-		and #%10000000 ; noise wave?
-		beq :+
-		lda #4
-		sta SGU_base+32+4
+		bra @ring
+@ring:
 :       lda SID_V1_Ctrl,x
         and #%00000100 ; ring mod?
 		beq :+
 		lda SGU_base+32+4
 		ora #%00010000
 		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
+		bra @sync
+:		lda SGU_base+32+4
+		and #%11101111
+		sta SGU_base+32+4
+		bra @sync
+@sync:
+        lda SID_V1_Ctrl,x
         and #%00000010 ; sync?
 		beq :+
-		lda #%00000011
+        lda SGU_base+32+5
+		ora #%00000011
         sta SGU_base+32+5
         rts
-
-:       stz SGU_base+32+5
+:
+        lda SGU_base+32+5
+		and #%11111100
+        sta SGU_base+32+5
 		rts
 
 convert_3_off:
@@ -142,11 +168,13 @@ convert_gate:
 		sta SGU_base+32+$16 ; amount
 		lda #$00
 		sta SGU_base+32+$17 ; bound
-		lda #%00100000 ; volume sweep
+		lda SGU_base+32+5
+		ora #%00100000 ; volume sweep
 		sta SGU_base+32+5 ; flags1
 		rts
 :
-		lda #0
+        lda SGU_base+32+5
+		and #%11011111 ; clear volume sweep
 		sta SGU_base+32+5 ; flags1
 		rts
 
