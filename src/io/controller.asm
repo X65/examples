@@ -188,7 +188,7 @@ mainloop:
         indicator_0 JOY0_BUTTON_X, %00010000
         indicator_0 JOY0_BUTTON_Y, %01000000
 
-        ; ldx GPIO::in1
+        ldx GPIO::in1
         indicator_0 JOY1_UP,       %00000001
         indicator_0 JOY1_DOWN,     %00000010
         indicator_0 JOY1_LEFT,     %00000100
