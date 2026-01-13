@@ -10,7 +10,7 @@
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
       "command": "/home/smoku/.local/bin/emu",
-      "args": ["--dap", "${command:cmake.launchTargetPath}"],
+      "args": ["--dap", "-z", "${command:cmake.launchTargetPath}"],
       "stopOnEntry": true,
       "cwd": "${workspaceFolder}",
       "trace": false,

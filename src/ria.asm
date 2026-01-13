@@ -67,6 +67,27 @@
     irq_brk_e   .addr
 .endstruct
 
+.struct HID
+    .org    $FFB0
+    ; HID devices
+    d0          .byte           ; Write: select device / Read: device dependent 0
+    d1          .byte           ; ^^^^^  select: [ AAAA DDDD ]
+    d2          .byte           ;        D - device type, A - device address/index
+    d3          .byte
+    d4          .byte
+    d5          .byte
+    d6          .byte
+    d7          .byte
+    d8          .byte
+    d9          .byte
+    d10         .byte
+    d11         .byte
+    d12         .byte
+    d13         .byte
+    d14         .byte
+    d15         .byte
+.endstruct
+
 .struct TIMERS
     .org    $FF98
     ; CIA compatible timers
@@ -92,6 +113,10 @@
     cfg0        .byte
     cfg1        .byte
 .endstruct
+
+.define RIA_HID_DEV_KEYBOARD $00
+.define RIA_HID_DEV_MOUSE    $01
+.define RIA_HID_DEV_GAMEPAD  $02
 
 RIA_API_HALT        = $FF
 RIA_API_ZXSTACK     = $00
