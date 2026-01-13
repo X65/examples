@@ -103,11 +103,10 @@ Setup50HzTimer:
 
 play:
         jsr PLAYMUSIC
+        jsr convert_sid_to_sgu
+        jsr display_sid_registers
         wai                     ; Is it time for another set of notes?
         lda TIMERS::icr         ; Acknowledge the interrupt
-        jsr convert_sid_to_sgu
-
-        jsr display_sid_registers
         jmp play
 
 display_sid_registers:
