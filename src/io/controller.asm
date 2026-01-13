@@ -146,6 +146,9 @@ on_fg_color = 7
         lda #$B2                ; <>
         sta text_offset + JOYH_BUTTON_HOME
 
+        ; select gamepad HID device
+        store #RIA_HID_DEV_GAMEPAD, HID::d0
+
 .macro indicator_0 offset, mask
         txa
         and #mask
@@ -198,8 +201,6 @@ mainloop:
         indicator_0 JOY1_BUTTON_X, %00010000
         indicator_0 JOY1_BUTTON_Y, %01000000
 
-        ; select gamepad HID device
-        store #RIA_HID_DEV_GAMEPAD, HID::d0
         lda HID::d0
         bmi :+
 
