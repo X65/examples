@@ -40,7 +40,7 @@ on_fg_color = 7
 .define JOY0_BUTTON_START       10+3 + text_columns*5
 .define JOY0_BUTTON_HOME        10+5 + text_columns*5
 
-.define JOY1_OFFSET             text_columns*10
+.define JOY1_OFFSET             text_columns*8
 .define JOY1_RIGHT              JOY1_OFFSET + JOY0_RIGHT
 .define JOY1_LEFT               JOY1_OFFSET + JOY0_LEFT
 .define JOY1_UP                 JOY1_OFFSET + JOY0_UP
@@ -71,13 +71,20 @@ on_fg_color = 7
 .define JOYH_BUTTON_START       JOYH_OFFSET + JOY0_BUTTON_START
 .define JOYH_BUTTON_HOME        JOYH_OFFSET + JOY0_BUTTON_HOME
 
+.define KBD_OFFSET              text_columns*18
+.define KBD_ROW                 text_columns-2
+
 .code
         sei
         cld
         ldx #$ff
         txs
 
-        jsr init_cgia
+        jsr cgia_init_text
+        clc
+        xce                     ; switch to native mode
+        .a8
+        .i8
 
         lda #$10                ; 0
         sta text_offset
@@ -89,6 +96,23 @@ on_fg_color = 7
         sta text_offset + JOYH_OFFSET
         lda #'D'
         sta text_offset + JOYH_OFFSET + 1
+
+        lda #'K'
+        sta text_offset + KBD_OFFSET
+        lda #'B'
+        sta text_offset + KBD_OFFSET + 1
+        lda #'D'
+        sta text_offset + KBD_OFFSET + 2
+        lda #$10                ; 0
+        sta text_offset + KBD_OFFSET + KBD_ROW
+        lda #$11                ; 1
+        sta text_offset + KBD_OFFSET + KBD_ROW - 2
+        lda #$12                ; 2
+        sta text_offset + KBD_OFFSET + KBD_ROW - 5
+        lda #$14                ; 4
+        sta text_offset + KBD_OFFSET + KBD_ROW - 5*2
+        lda #$18                ; 8
+        sta text_offset + KBD_OFFSET + KBD_ROW - 5*4
 
         lda #$1c                ; ->
         sta text_offset + JOY0_RIGHT
@@ -146,9 +170,6 @@ on_fg_color = 7
         lda #$B2                ; <>
         sta text_offset + JOYH_BUTTON_HOME
 
-        ; select gamepad HID device
-        store #RIA_HID_DEV_GAMEPAD, HID::d0
-
 .macro indicator_0 offset, mask
         txa
         and #mask
@@ -180,6 +201,15 @@ on_fg_color = 7
 :
 .endmacro
 
+.macro  write_hex_char
+        ora #$30                ; '0'..'9' or ':'..'?'
+        cmp #$3A                ; ':' = '9'+1
+        bcc :+                  ; 0..9 done
+        adc #$06                ; carry=1 from CMP -> add 7 => 'A'..'F'
+:       sta text_offset,x
+        inx
+.endmacro
+
 mainloop:
         ldx GPIO::in0
         indicator_0 JOY0_UP,       %00000001
@@ -201,6 +231,8 @@ mainloop:
         indicator_0 JOY1_BUTTON_X, %00010000
         indicator_0 JOY1_BUTTON_Y, %01000000
 
+        ; select gamepad HID device
+        store #RIA_HID_DEV_GAMEPAD, HID::d0
         lda HID::d0
         bmi :+
 
@@ -230,8 +262,50 @@ mainloop:
         indicator_1 JOYH_BUTTON_L3,     %00100000
         indicator_1 JOYH_BUTTON_R3,     %01000000
 
+        _i16
+        ; select keyboard device page 0
+        store #RIA_HID_DEV_KEYBOARD, HID::d0
+        ldx #KBD_OFFSET+KBD_ROW+text_columns*2
+        jsr kbd_dump_page
+        ; and page 1
+        store #RIA_HID_DEV_KEYBOARD | $10, HID::d0
+        ldx #KBD_OFFSET+KBD_ROW+text_columns*3
+        jsr kbd_dump_page
+
+        _i8
         jmp mainloop
 
+.proc kbd_dump_page
+.i16
+        ldy #0
+loop:
+        lda HID::d0,y
+        and #$0F
+        write_hex_char
+        dex
+        dex
+        lda HID::d0,y
+        lsrx 4
+        write_hex_char
+        dex
+        dex
+        iny
+        lda HID::d0,y
+        and #$0F
+        write_hex_char
+        dex
+        dex
+        lda HID::d0,y
+        lsrx 4
+        write_hex_char
+        dex
+        dex
+        dex
+        iny
+        cpy #16
+        bne loop
+        rts
+.endproc
 
 ; CGIA setup
 text_offset  = $d000
@@ -239,83 +313,4 @@ chgen_offset = $d800
 color_offset = $e000
 bkgnd_offset = $e800
 
-.define CGIA_PLANES_USED 1
-
-init_cgia:
-        clc
-        xce                     ; switch to native mode
-
-        stz CGIA::planes
-
-        phb
-        pla
-        sta RIA::stack
-        lda #>chgen_offset
-        sta RIA::stack
-        lda #<chgen_offset
-        sta RIA::stack
-        stz RIA::stack
-        stz RIA::stack
-        lda #RIA_API_GET_CHARGEN
-        sta RIA::op
-
-        _a8
-        store #bg_color, bkgnd_offset
-        store #fg_color, color_offset
-
-        _ai16
-        stz CGIA::mode
-        ldx #CGIA::mode
-        ldy #CGIA::mode+2
-        lda #CGIA::plane0-CGIA::mode-2
-        mvn 0,0
-
-        stz text_offset
-        ldx #text_offset
-        ldy #text_offset+2
-        lda #text_columns*text_rows-2
-        mvn 0,0
-
-        ldx #bkgnd_offset
-        ldy #bkgnd_offset+1
-        lda #text_columns*text_rows-1
-        mvn 0,0
-
-        ldx #color_offset
-        ldy #color_offset+1
-        lda #text_columns*text_rows-1
-        mvn 0,0
-
-        ldx #cgia_planes
-        ldy #CGIA::plane0
-        lda #(CGIA_PLANES_USED*CGIA_PLANE_REGS_NO)-1
-        mvn 0,0
-
-        store #display_list, CGIA::offset0
-        _ai8
-        store #bg_color, CGIA::back_color
-
-:       bit CGIA::raster
-        bne :-
-        store #%00000001, CGIA::planes
-
-        sec
-        xce                     ; switch to emulation mode
-
-        rts
-
-cgia_planes:
-.byte $00,4,7,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-
-display_list:
-.byte   CGIA_DL_INS_LOAD_MEMORY | CGIA_DL_INS_LM_MEMORY_SCAN|CGIA_DL_INS_LM_FOREGROUND_SCAN|CGIA_DL_INS_LM_BACKGROUND_SCAN|CGIA_DL_INS_LM_CHARACTER_GENERATOR
-.word   text_offset
-.word   color_offset
-.word   bkgnd_offset
-.word   chgen_offset
-.byte   $70, $70, $30
-.repeat text_rows
-.byte   CGIA_DL_MODE_ATTRIBUTE_TEXT
-.endrep
-.byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
-.word   display_list
+.include "../cgia/cgia_init.inc"
