@@ -235,6 +235,9 @@ mainloop:
         store #RIA_HID_DEV_GAMEPAD, HID::d0
         lda HID::d0
         bmi :+
+        ; no gamepad connected
+        ; TODO: print message
+        jmp kbd
 
 :       ; gamepad 0 (merged) is active - at least one pad connected
         and #$0F                ; mask direction pad
@@ -261,7 +264,7 @@ mainloop:
         indicator_1 JOYH_BUTTON_HOME,   %00010000
         indicator_1 JOYH_BUTTON_L3,     %00100000
         indicator_1 JOYH_BUTTON_R3,     %01000000
-
+kbd:
         _i16
         ; select keyboard device page 0
         store #RIA_HID_DEV_KEYBOARD, HID::d0
