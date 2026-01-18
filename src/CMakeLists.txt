@@ -58,6 +58,10 @@ add_xex(bitmap_modes)
 target_sources(bitmap_modes PRIVATE
     cgia/bitmap_modes.asm
 )
+add_xex(font_cp)
+target_sources(font_cp PRIVATE
+    cgia/font_cp.asm
+)
 add_xex(raster_lines)
 target_sources(raster_lines PRIVATE
     cgia/raster_lines.asm
