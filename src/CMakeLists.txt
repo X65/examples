@@ -58,6 +58,10 @@ add_xex(bitmap_modes)
 target_sources(bitmap_modes PRIVATE
     cgia/bitmap_modes.asm
 )
+add_xex(raster_lines)
+target_sources(raster_lines PRIVATE
+    cgia/raster_lines.asm
+)
 
 # add_xex(pwm_samples)
 # target_sources(pwm_samples PRIVATE
