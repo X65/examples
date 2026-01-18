@@ -7,11 +7,11 @@
 
 ; You need to merge this code compiled to .xex with actual .sid file
 ; i.e.
-; ../tools/xex-filter.pl -o ./build/Driller.sid.xex -a \$0882 -b src/sound/Driller.sid
-; ../tools/xex-filter.pl -o ./build/Driller.xex ./build/src/Driller.sid.xex ./build/Driller.sid.xex
+; ../tools/xex-filter.pl -o ./build/Pokeymania.sid.xex -a \$1E82 -b src/sound/Orbtraxx2-Pokeymania.sid
+; ../tools/xex-filter.pl -o ./build/Pokeymania.xex ./build/src/Pokeymania.sid.xex ./build/Pokeymania.sid.xex
 
 .segment "INFO"
-    .byte "/MUSICIANS/G/Gray_Matt/Driller.sid"
+    .byte "Orbtraxx2-Pokeymania.sid by 4mat"
 
 .import __MAIN_START__
 .segment "VECTORS"
@@ -23,21 +23,25 @@
 CLOCK = 1000000 ; 1 MHz timers clock
 
 ; CGIA setup
-text_offset  = $8000
-chgen_offset = $8800
-color_offset = $9000
-bkgnd_offset = $9800
+text_offset  = $3000
+chgen_offset = $3800
+color_offset = $4000
+bkgnd_offset = $4800
 .define text_columns 40
-.define text_rows    4
+.define text_rows    5
 bg_color = 145
 fg_color = 150
 
-LOADADDRESS = $900 - $7E ; adjust for PSID v2 header
-INITMUSIC   = $15E0
-PLAYMUSIC   = $0E46
-DEFSONG     = 0
+LOADADDRESS = $1F00 - $7E ; adjust for PSID v3 header
+INITMUSIC   = $8000
+PLAYMUSIC   = $8003
+DEFSONG     = 3
+SONGS_COUNT = 4
+
+PLAYING_OFFSET = text_columns + text_columns/2
 
 SID_Base        = $D400
+
 SID_V1_FreqL    = SID_Base + $0
 SID_V1_FreqH    = SID_Base + $1
 SID_V1_PulseL   = SID_Base + $2
@@ -64,6 +68,13 @@ FILTER_FC:    .res 2
 FILTER_RES:   .res 1
 FILTER_EN:    .res 1
 
+TUNE:       .res 1
+
+str:        .res 2
+
+was_key_pressed:
+            .res 1
+
 .code
 .org $200
 
@@ -73,6 +84,26 @@ FILTER_EN:    .res 1
         txs
 
         jsr cgia_init_text
+
+		; Tune 01 hangs if zero page is not clear
+		ldx #0
+:		stz $00,x
+		inx
+		bne :-
+
+		lda #<str_playing
+		sta str
+		lda #>str_playing
+		sta str+1
+		ldx #PLAYING_OFFSET
+		jsr print_str
+
+		lda #<str_press_key
+		sta str
+		lda #>str_press_key
+		sta str+1
+		ldx #PLAYING_OFFSET + text_columns*3 - 3
+		jsr print_str
 
 		ldx #$1C
 :		stz SID_Base, x
@@ -93,20 +124,54 @@ Setup50HzTimer:
         lda #$01
         sta RIA::irq_enable
 
+		stz HID::d0 		 ; activate keyboard mapping
+		stz was_key_pressed
+
         lda #DEFSONG
-        jsr INITMUSIC
+		sta TUNE
 
         ; start timer A in continuous mode
         lda #$11
         sta TIMERS::cra
 
+start_play:
+		lda TUNE
+        jsr INITMUSIC
+		lda TUNE
+		inc A
+		ldx #PLAYING_OFFSET + 13
+        jsr write_hex
+
+		jsr reset_sgu
+
 play:
         jsr PLAYMUSIC
-        wai                     ; Is it time for another set of notes?
-        lda TIMERS::icr         ; Acknowledge the interrupt
         jsr convert_sid_to_sgu
         jsr display_sid_registers
-        jmp play
+        wai                     ; Is it time for another set of notes?
+        lda TIMERS::icr         ; Acknowledge the interrupt
+
+        lda HID::d0
+		and #1
+		bne no_keypress
+		inc A
+		sta was_key_pressed
+		bra play
+
+no_keypress:
+        lda was_key_pressed
+		beq play
+		; key was pressed and released now
+		stz was_key_pressed
+		; advance to next tune
+		lda TUNE
+		inc A
+		cmp #SONGS_COUNT
+		bne :+
+		lda #0
+:		sta TUNE
+
+        jmp start_play
 
 display_sid_registers:
         lda SID_Base+1
@@ -187,7 +252,6 @@ display_sid_registers:
 		lda SID_Base+21+3
 		ldx #120+8
 		jsr write_hex
-
 		rts
 
 convert_sid_to_sgu:
@@ -221,7 +285,33 @@ convert_sid_to_sgu:
 
 		rts
 
+reset_sgu:
+		stz SGU_base
+		ldx #0
+:		stz SGU_base+32,x
+		inx
+		cpx #32
+		bne :-
+		rts
+
+.proc print_str
+        ldy #0
+loop:	lda (str),y
+		bne :+
+		rts
+:		sta text_offset,x
+        iny
+		inx
+		bra loop
+.endproc
+
+str_playing:
+        .asciiz "Playing tune 00/04"
+str_press_key:
+        .asciiz "Press any key to change"
+
 .include "./sid.inc"
 
 .include "../cgia/cgia_init.inc"
 .include "../util/write_hex.inc"
+

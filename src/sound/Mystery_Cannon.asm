@@ -35,6 +35,7 @@ fg_color = 150
 LOADADDRESS = $1000 - $7E ; adjust for PSID v3 header
 INITMUSIC   = $1000
 PLAYMUSIC   = $1003
+DEFSONG     = 0
 
 SID_Base        = $D400
 SID2_Base       = $D420
@@ -95,6 +96,7 @@ Setup50HzTimer:
         lda #$01
         sta RIA::irq_enable
 
+        lda #DEFSONG
         jsr INITMUSIC
 
         ; start timer A in continuous mode
