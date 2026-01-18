@@ -83,6 +83,10 @@ add_xex(Mystery_Cannon.sid)
 target_sources(Mystery_Cannon.sid PRIVATE
     sound/Mystery_Cannon.asm
 )
+add_xex(404_Error.sap)
+target_sources(404_Error.sap PRIVATE
+    sound/404_Error.asm
+)
 
 add_xex(hello_uart)
 target_sources(hello_uart PRIVATE
