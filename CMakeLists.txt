@@ -13,7 +13,7 @@ function(ADD_XEX executable_name)
     )
     target_link_options(${executable_name} PUBLIC
         -C ${CMAKE_SOURCE_DIR}/x65.cfg
-        -Ln ${CMAKE_CURRENT_BINARY_DIR}/${executable_name}.lab
+        -Ln ${CMAKE_CURRENT_BINARY_DIR}/${executable_name}.lbl
         --mapfile ${CMAKE_CURRENT_BINARY_DIR}/${executable_name}.map
         -Wl --dbgfile,${CMAKE_CURRENT_BINARY_DIR}/${executable_name}.dbg
     )
