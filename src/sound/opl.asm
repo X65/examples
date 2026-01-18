@@ -75,24 +75,25 @@ CLOCK = 1000000 ;X65
             lda #>irq
             sta $ffff
             
-            ; enable EXTIO bank0 (OPL3)
-            ldx #1
-            stx RIA::extio
+;             ; enable EXTIO bank0 (OPL3)
+;             ldx #1
+;             stx RIA::extio
             
             ldx #0
             txa
-:           stx OPL2_ADDR
-            nop
-            nop
-            sta OPL2_DATA
-            php
-            plp
-            php
-            plp
-            php
-            plp
-            php
-            plp
+:           ; stx OPL2_ADDR
+            ; nop
+            ; nop
+            ; sta OPL2_DATA
+            sta OPL2_ADDR,x
+            ; php
+            ; plp
+            ; php
+            ; plp
+            ; php
+            ; plp
+            ; php
+            ; plp
             inx
             bne :-
             
@@ -238,10 +239,12 @@ getloop:    ldy #$00
             lda (dataptr),y
             cmp #$fe
             bcs next
-            sta OPL2_ADDR
+            ; sta OPL2_ADDR
+            tax
             iny
             lda (dataptr),y
-            sta OPL2_DATA
+            ; sta OPL2_DATA
+            sta OPL2_ADDR,x
             tya
             sec
             adc dataptr
@@ -310,6 +313,9 @@ _end:       inc waitcnt
             lda TIMERS::icr
             lda irqa
             ldy irqy
+
+            jsr opl_to_sgu
+
             sta RIA::irq_status
 nmi:        rti
 
@@ -405,3 +411,105 @@ conv:   .byte "0123456789ABCDEF"
             
             ;insert your music data here
             .include "data/tune.asm"
+
+SGU_base = $FEC0
+SGU_reg  = SGU_base + 32
+SGU_FREQ_LO                     = SGU_reg + 0
+SGU_FREQ_HI                     = SGU_reg + 1
+SGU_VOL                         = SGU_reg + 2
+SGU_PAN                         = SGU_reg + 3
+SGU_FLAGS0                      = SGU_reg + 4
+SGU_FLAGS1                      = SGU_reg + 5
+SGU_CUTOFF_LO                   = SGU_reg + 6
+SGU_CUTOFF_HI                   = SGU_reg + 7
+SGU_DUTY                        = SGU_reg + 8
+SGU_RESON                       = SGU_reg + 9
+SGU_PCMPOS_LO                   = SGU_reg + 10
+SGU_PCMPOS_HI                   = SGU_reg + 11
+SGU_PCMBND_LO                   = SGU_reg + 12
+SGU_PCMBND_HI                   = SGU_reg + 13
+SGU_PCMRST_LO                   = SGU_reg + 14
+SGU_PCMRST_HI                   = SGU_reg + 15
+SGU_SWFREQ_SPEED_LO             = SGU_reg + 16
+SGU_SWFREQ_SPEED_HI             = SGU_reg + 17
+SGU_SWFREQ_AMT                  = SGU_reg + 18
+SGU_SWFREQ_BOUND                = SGU_reg + 19
+SGU_SWVOL_SPEED_LO              = SGU_reg + 20
+SGU_SWVOL_SPEED_HI              = SGU_reg + 21
+SGU_SWVOL_AMT                   = SGU_reg + 22
+SGU_SWVOL_BOUND                 = SGU_reg + 23
+SGU_SWCUT_SPEED_LO              = SGU_reg + 24
+SGU_SWCUT_SPEED_HI              = SGU_reg + 25
+SGU_SWCUT_AMT                   = SGU_reg + 26
+SGU_SWCUT_BOUND                 = SGU_reg + 27
+SGU_SPECIAL1C                   = SGU_reg + 28
+SGU_SPECIAL1D                   = SGU_reg + 29
+SGU_RESTIMER_LO                 = SGU_reg + 30
+SGU_RESTIMER_HI                 = SGU_reg + 31
+
+opl_to_sgu:
+        ldy #0
+opl_chan:
+        sty SGU_base
+
+        lda #$40
+        sta SGU_DUTY
+        ; lda #2                  ; sine wave
+        ; sta SGU_FLAGS0
+
+        lda OPL2_ADDR + $A0, y
+        sta RIA::opera
+        lda OPL2_ADDR + $B0, y
+        and #3
+        sta RIA::opera+1
+        lda OPL2_ADDR + $B0, y
+        lsr                     ; >> 2 *2 (word sized factor)
+        and #%00001110
+        tax
+        lda block_f_scale,x
+        sta RIA::operb
+        lda block_f_scale+1,x
+        sta RIA::operb+1
+        lda RIA::mulab+1
+        sta SGU_FREQ_LO
+        lda block_f_scale+1,x
+        sta RIA::operb
+        stz RIA::operb+1
+        lda RIA::mulab+1
+        sta SGU_FREQ_HI
+
+        lda OPL2_ADDR + $B0, y
+        and #%00100000          ; KEY-ON
+        beq :+
+        lda #$7f
+        bra :++
+:       lda #$00
+:       sta SGU_VOL
+
+        stz TMP_PAN
+        lda OPL2_ADDR + $C0, y
+        and #%00100000          ; Right Channel
+        beq :+
+        lda #$7f
+        sta TMP_PAN
+:       lda OPL2_ADDR + $C0, y
+        and #%00010000          ; Left Channel
+        beq :+
+        lda TMP_PAN
+        clc
+        adc #$81
+        sta TMP_PAN
+:
+        lda TMP_PAN
+        sta SGU_PAN
+
+        iny
+        cpy #8
+        bne opl_chan
+
+        rts
+
+TMP_PAN: .res 1
+
+block_f_scale:
+        .word $00B1, $0162, $02C4, $0589, $0B13, $1627, $2C4F, $589E
