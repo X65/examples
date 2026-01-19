@@ -4,12 +4,11 @@
     ; math accelerator
     opera       .word
     operb       .word
-    mulab       .word
+    mulab       .word 2
     divab       .word
 
     ; monotonic clock
     tm          .byte 6
-    _tm_res     .byte 2
 
     ; DMA
     addr_src    .faraddr
