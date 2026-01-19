@@ -179,9 +179,17 @@ convert_gate:
 		rts
 
 convert_sid_channel:
+		; convert frequency scale by 6425/7382
         lda SID_V1_FreqL,x
-		sta SGU_base+32+0
+        sta RIA::opera
         lda SID_V1_FreqH,x
+        sta RIA::opera+1
+        lda #223                ; 223/256 ~= 6425/7382
+        sta RIA::operb
+        stz RIA::operb+1
+        lda RIA::mulab+1
+		sta SGU_base+32+0
+        lda RIA::mulab+2
 		sta SGU_base+32+1
 
         ; convert duty cycle
