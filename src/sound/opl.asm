@@ -472,10 +472,7 @@ opl_chan:
         sta RIA::operb+1
         lda RIA::mulab+1
         sta SGU_FREQ_LO
-        lda block_f_scale+1,x
-        sta RIA::operb
-        stz RIA::operb+1
-        lda RIA::mulab+1
+        lda RIA::mulab+2
         sta SGU_FREQ_HI
 
         lda OPL2_ADDR + $B0, y
