@@ -109,8 +109,13 @@ SID_V3_WaveOut  = SID_Base + $1B
 SID_V3_ADSROut  = SID_Base + $1C
 
 SGU_base = $FEC0
-DUTY_shifter = SID_Base-2
-VOL_shifter = SID_Base-3
+
+.zeropage
+DUTY_shifter: .res 2
+VOL_shifter:  .res 1
+FILTER_FC:    .res 2
+FILTER_RES:   .res 1
+FILTER_EN:    .res 1
 
 .code
 .org $200
@@ -1648,111 +1653,38 @@ write_sid_registers:
 
 		rts
 
-convert_ctl:
-		lda SID_V1_Ctrl,x
-		and #%00010000 ; triangle wave?
-		beq :+
-		lda #3
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-        and #%00100000 ; sawtooth wave?
-		beq :+
-		lda #1
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-		and #%01000000 ; pulse wave?
-		beq :+
-		lda #0
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-		and #%10000000 ; noise wave?
-		beq :+
-		lda #4
-		sta SGU_base+32+4
-:       lda SID_V1_Ctrl,x
-        and #%00000100 ; ring mod?
-		beq :+
-		lda SGU_base+32+4
-		ora #$10
-		sta SGU_base+32+4
-:
-		rts
-
-convert_gate:
-        lda SID_V1_Ctrl,x
-		and #%00000001
-		bne :+
-		lda #$01
-		sta SGU_base+32+$14 ; speed lo
-		lda SID_V1_SusRel,x
-		and #$0f
-		sta SGU_base+32+$15 ; speed hi
-		lda #$01
-		sta SGU_base+32+$16 ; amount
-		lda #$00
-		sta SGU_base+32+$17 ; bound
-		lda #%00100000 ; volume sweep
-		sta SGU_base+32+5 ; flags1
-		rts
-:
-		lda #0
-		sta SGU_base+32+5 ; flags1
-		rts
-
 convert_sid_to_sgu:
-        lda SID_VolFiltMode
-		and #$0f
-        asl A
-		asl A
-		sta VOL_shifter
+        ldx #24
+		jsr prepare_vol_shifter
+		ldx #21
+		jsr prepare_filters
 
 		stz SGU_base+0                ; select channel 0
 		ldx #0                        ; SID Voice 1 offset
 		jsr convert_sid_channel
+		lda SID_FilterCtrl
+		and #%00000001
+		jsr convert_filter
+
 		inc SGU_base+0
 		ldx #7                        ; SID Voice 2 offset
 		jsr convert_sid_channel
+		lda SID_FilterCtrl
+		and #%00000010
+		jsr convert_filter
+
 		inc SGU_base+0
 		ldx #14                       ; SID Voice 3 offset
 		jsr convert_sid_channel
+		lda SID_FilterCtrl
+		and #%00000100
+		jsr convert_filter
+		lda SID_FilterCtrl
+		jsr convert_3_off
+
 		rts
 
-convert_sid_channel:
-        lda SID_V1_FreqL,x
-		sta SGU_base+32+0
-        lda SID_V1_FreqH,x
-		sta SGU_base+32+1
-
-        ; convert duty cycle
-		lda SID_V1_PulseL,x
-		sta DUTY_shifter
-		lda SID_V1_PulseH,x
-		sta DUTY_shifter+1
-
-        asl DUTY_shifter
-		rol DUTY_shifter+1
-		asl DUTY_shifter
-		rol DUTY_shifter+1
-		asl DUTY_shifter
-		rol DUTY_shifter+1
-		lda DUTY_shifter+1
-		sta SGU_base+32+8
-
-        ; convert wave form
-		jsr convert_ctl
-
-		; convert gate
-		jsr convert_gate
-
-		; convert volume
-		lda SID_V1_SusRel,x
-        lsr A
-        lsr A
-		clc
-		adc VOL_shifter
-		sta SGU_base+32+2
-
-        rts
+.include "./sid.inc"
 
 .include "../cgia/cgia_init.inc"
 .include "../util/write_hex.inc"
