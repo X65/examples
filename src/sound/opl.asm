@@ -32,21 +32,16 @@ HAS_LOOP = 2
     .word 0, 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, __MAIN_START__, 0
 
-.struct
-.org $f0
-waitcnt     .res 1
-dataptr     .res 2
-waitptr     .res 2
+.zeropage
+waitcnt:    .res 1
+dataptr:    .res 2
+waitptr:    .res 2
 
-irqa    .res 1
-irqy    .res 1
-irq1    .res 1
-.endstruct
+irqa:   .res 1
+irqy:   .res 1
+irq1:   .res 1
 
-OPL2_ADDR = $FC00
-OPL2_DATA = $FC01
-OPL3_ADDR = $FC02
-OPL3_DATA = $FC03
+TEMP:   .res 1
 
 SCREEN    = $D000
 
@@ -75,29 +70,8 @@ CLOCK = 1000000 ;X65
             lda #>irq
             sta $ffff
             
-;             ; enable EXTIO bank0 (OPL3)
-;             ldx #1
-;             stx RIA::extio
-            
-            ldx #0
-            txa
-:           ; stx OPL2_ADDR
-            ; nop
-            ; nop
-            ; sta OPL2_DATA
-            sta OPL2_ADDR,x
-            ; php
-            ; plp
-            ; php
-            ; plp
-            ; php
-            ; plp
-            ; php
-            ; plp
-            inx
-            bne :-
-            
             jsr init_cgia
+            jsr SGU_INIT
             
             lda #<regdata
             sta dataptr
@@ -244,8 +218,9 @@ getloop:    ldy #$00
             iny
             lda (dataptr),y
             ; sta OPL2_DATA
-            sta OPL2_ADDR,x
-            tya
+            phy
+            jsr WRITE_SGU
+            pla
             sec
             adc dataptr
             sta dataptr
@@ -313,8 +288,6 @@ _end:       inc waitcnt
             lda TIMERS::icr
             lda irqa
             ldy irqy
-
-            jsr opl_to_sgu
 
             sta RIA::irq_status
 nmi:        rti
@@ -412,8 +385,15 @@ conv:   .byte "0123456789ABCDEF"
             ;insert your music data here
             .include "data/tune.asm"
 
+DEFAULT_VOL = $7f               ; 7F on OPL2 (no panning), 0 on OPL3 (supports panning)
+
 SGU_base = $FEC0
-SGU_reg  = SGU_base + 32
+SGU_select = SGU_base + $3F
+SGU_op0 = SGU_base + 0
+SGU_op1 = SGU_base + 8
+SGU_op2 = SGU_base + 16
+SGU_op3 = SGU_base + 24
+SGU_reg = SGU_base + 32
 SGU_FREQ_LO                     = SGU_reg + 0
 SGU_FREQ_HI                     = SGU_reg + 1
 SGU_VOL                         = SGU_reg + 2
@@ -447,22 +427,404 @@ SGU_SPECIAL1D                   = SGU_reg + 29
 SGU_RESTIMER_LO                 = SGU_reg + 30
 SGU_RESTIMER_HI                 = SGU_reg + 31
 
-opl_to_sgu:
-        ldy #0
-opl_chan:
-        sty SGU_base
+.define SGU_OP_REG_MUL      0  ; R0: [7]TRM [6]VIB [5:4]KSR [3:0]MUL
+.define SGU_OP_REG_TL       1  ; R1: [7:6]KSL [5:0]TL_lo6
+.define SGU_OP_REG_AR_DR    2  ; R2: [7:4]AR_lo4 [3:0]DR_lo4
+.define SGU_OP_REG_SL_RR    3  ; R3: [7:4]SL [3:0]RR
+.define SGU_OP_REG_DT_SR    4  ; R4: [7:5]DT [4:0]SR
+.define SGU_OP_REG_DELAY    5  ; R5: [7:5]DELAY [4]FIX [3:0]WPAR
+.define SGU_OP_REG_MOD      6  ; R6: [7]TRMD [6]VIBD [5]SYNC [4]RING [3:1]MOD [0]TL_msb
+.define SGU_OP_REG_OUT_WAVE 7  ; R7: [7:5]OUT [4]AR_msb [3]DR_msb [2:0]WAVE
 
+
+SGU_INIT:
+        ldx #0
+:       stx SGU_select
+        ; channel setup
+        lda #DEFAULT_VOL
+        sta SGU_VOL
         lda #$40
         sta SGU_DUTY
-        ; lda #2                  ; sine wave
-        ; sta SGU_FLAGS0
+        ; operator setup
+        lda #1
+        sta SGU_op0+SGU_OP_REG_MUL      ; initial x1 MUL
+        sta SGU_op1+SGU_OP_REG_MUL
 
-        lda OPL2_ADDR + $A0, y
+        stz SGU_op0+SGU_OP_REG_TL
+        stz SGU_op0+SGU_OP_REG_AR_DR
+        stz SGU_op0+SGU_OP_REG_SL_RR
+        stz SGU_op0+SGU_OP_REG_DT_SR
+        stz SGU_op0+SGU_OP_REG_DELAY
+        stz SGU_op1+SGU_OP_REG_TL
+        stz SGU_op1+SGU_OP_REG_AR_DR
+        stz SGU_op1+SGU_OP_REG_SL_RR
+        stz SGU_op1+SGU_OP_REG_DT_SR
+        stz SGU_op1+SGU_OP_REG_DELAY
+
+        lda #%00001100                  ; default modulator feedback
+        sta SGU_op0+SGU_OP_REG_MOD
+        stz SGU_op0+SGU_OP_REG_OUT_WAVE ; modulator does not OUT
+        lda #%11100000
+        sta SGU_op1+SGU_OP_REG_OUT_WAVE ; carrier is OUT
+        lda #%00001110
+        sta SGU_op1+SGU_OP_REG_MOD      ; carrier is modulated
+
+        stz SGU_op2+0
+        stz SGU_op2+1
+        stz SGU_op2+2
+        stz SGU_op2+3
+        stz SGU_op2+4
+        stz SGU_op2+5
+        stz SGU_op2+6
+        stz SGU_op2+7
+        stz SGU_op3+0
+        stz SGU_op3+1
+        stz SGU_op3+2
+        stz SGU_op3+3
+        stz SGU_op3+4
+        stz SGU_op3+5
+        stz SGU_op3+6
+        stz SGU_op3+7
+
+        inx
+        cpx #9
+        bne :-
+        rts
+
+OPL_IDX_2_CHANNEL:
+.byte 0, 1, 2, 0, 1, 2, 99, 99, 3, 4, 5, 3, 4, 5, 99, 99, 6, 7, 8, 6, 7, 8
+.byte 99, 99, 99, 99, 99, 99, 99, 99, 99, 99
+OPL_IDX_2_OPERATOR: ; x8 op regs per channel
+.byte 0, 0, 0, 8, 8, 8, 99, 99, 0, 0, 0, 8, 8, 8, 99, 99, 0, 0, 0, 8, 8, 8
+.byte 99, 99, 99, 99, 99, 99, 99, 99, 99, 99
+
+; 0: SINE               -> 0: SINE
+; 1: HALF_SINE          -> 0: SINE
+; 2: MOD_SINE           -> 0: SINE
+; 3: TRI_SINE           -> 0: SINE
+; 4: DOUBLE_HALF_SINE   -> 3: PULSE
+; 5: DOUBLE_MOD_SINE    -> 0: SINE
+; 6: SQUARE             -> 3: PULSE
+; 7: SAW                -> 2: SAWTOOTH
+WAVE_MAP:
+.byte 0, 0, 0, 0, 3, 0, 3, 2
+
+WPAR_MAP:
+; 0: SINE               -> 000: NONE
+; 1: HALF_SINE          -> 010: HALF
+; 2: MOD_SINE           -> 100: ABS
+; 3: TRI_SINE           -> 000: NONE
+; 4: DOUBLE_HALF_SINE   -> 000: NONE
+; 5: DOUBLE_MOD_SINE    -> 100: ABS
+; 6: SQUARE             -> 000: NONE
+; 7: SAW                -> 000: NONE
+.byte 0, 2, 4, 0, 0, 4, 0, 0
+
+
+; depending on the operator index in .X
+; - select the correct SGU-1 channel
+; - return SGU-1 operator index in .Y
+.macro SELECT_BY_OPERATOR
+        txa
+        and #$1F
+        tay
+        sty $48
+        lda OPL_IDX_2_CHANNEL,y
+        sta SGU_select          ; select channel
+        lda OPL_IDX_2_OPERATOR,y
+        tay
+.endmacro
+
+.macro SELECT_BY_CHANNEL
+        txa
+        and #$0F
+        tay
+        sta SGU_select          ; select channel
+.endmacro
+
+; --------------------------------------------------------------
+; WRITE_SGU
+; Convert OPL2 register write to SGU-1 register write
+;
+; .X - OPL2 register number
+; .A - OPL2 register value
+; destroys: .X, .Y, .A
+; --------------------------------------------------------------
+.proc WRITE_SGU
+        pha                     ; will use later
+
+        ; first, identify SGU-1 register to write to
+        txa
+        and #%11100000
+
+R20:    cmp #$20 ;- 35      [7]Trm [6]Vib [5]Sust [4]KSR [3:0]MUL
+        bne R40
+
+        SELECT_BY_OPERATOR
+        pla
+        pha                     ; will need value again
+        and #%11001111          ; extract TRM,VIB,MUL
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_MUL,y
+        and #%00110000          ; clear bits
+        ora TEMP
+        sta SGU_base+SGU_OP_REG_MUL,y
+
+        pla
+        pha                     ; will need value again
+        and #%00100000          ; extract SUSTAIN
+        bne :+
+        ; SUS=0: no sustain (SR=RR)
+        lda SGU_base+SGU_OP_REG_SL_RR,y
+        and #%00001111          ; extract RR
+        asl                     ; *2
+        ora #%00000001          ; +1 to convert from 0-15 to 1-31
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_DT_SR,y
+        and #%11100000          ; keep DT
+        ora TEMP                ; merge SR
+        sta SGU_base+SGU_OP_REG_DT_SR,y
+        bra :++
+:       ; SUS=1: infinite sustain (SR=0)
+        lda SGU_base+SGU_OP_REG_DT_SR,y
+        and #%11100000          ; keep DT
+        sta SGU_base+SGU_OP_REG_DT_SR,y
+:
+        pla
+        and #%00010000          ; extract KSR
+        sta TEMP
+        asl                     ; move it to second KSR bit position
+        ora TEMP                ; merge with base bit
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_MUL,y
+        and #%11001111          ; make place for KSR
+        ora TEMP                ; merge with scaled KSR
+        sta SGU_base+SGU_OP_REG_MUL,y
+
+        rts
+
+R40:    cmp #$40 ;- 55      [7:6]KSL [5:0]TL
+        bne R60
+
+        SELECT_BY_OPERATOR
+        pla
+        sta SGU_base+SGU_OP_REG_TL,y    ; R1 as-is
+        rts
+
+R60:    cmp #$60 ;- 75      [7:4]AR  [3:0]DR
+        bne R80
+
+        SELECT_BY_OPERATOR
+        pla
+        tax
+        and #%11110000          ; extract AR
+        asl                     ; *2
+        ora #%00010000          ; +1
+        php                     ; save carry flag
+        sta TEMP
+        txa
+        and #%00001111          ; extract DR
+        asl                     ; *2
+        ora #%00000001          ; +1
+        tax                     ; save for later
+        and #%00001111          ; limit to 4 bits
+        ora TEMP
+        sta SGU_base+SGU_OP_REG_AR_DR,y           ; set R2
+        txa
+        and #%00010000          ; check 5th bit of DR
+        bne :+
+        lda SGU_base+SGU_OP_REG_OUT_WAVE,y
+        and #%11110111          ; clear bit 3
+        sta SGU_base+SGU_OP_REG_OUT_WAVE,y
+        bra :++
+:       lda SGU_base+SGU_OP_REG_OUT_WAVE,y
+        ora #%00001000          ; set bit 3
+        sta SGU_base+SGU_OP_REG_OUT_WAVE,y
+:       plp                     ; check 5th bit of AR (in carry)
+        bcs :+
+        lda SGU_base+SGU_OP_REG_OUT_WAVE,y
+        and #%11101111          ; clear bit 4
+        sta SGU_base+SGU_OP_REG_OUT_WAVE,y
+        bra :++
+:       lda SGU_base+SGU_OP_REG_OUT_WAVE,y
+        ora #%00010000          ; set bit 4
+        sta SGU_base+SGU_OP_REG_OUT_WAVE,y
+:
+        rts
+
+R80:    cmp #$80 ;- 95      [7:4]SL  [3:0]RR
+        bne RA0
+
+        SELECT_BY_OPERATOR
+        pla
+        sta SGU_base+SGU_OP_REG_SL_RR,y           ; R3 as-is
+
+        lda SGU_base+SGU_OP_REG_DT_SR,y
+        and #%00011111          ; extract SR
+        beq :+
+        ; if SR is non zero, it means it should equal to RR
+        lda SGU_base+SGU_OP_REG_SL_RR,y
+        and #%00001111          ; extract RR
+        asl                     ; *2
+        ora #%00000001          ; +1 to convert from 0-15 to 1-31
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_DT_SR,y
+        and #%11100000          ; keep DT
+        ora TEMP                ; merge SR
+        sta SGU_base+SGU_OP_REG_DT_SR,y
+:
+        rts
+
+RA0:    cmp #$A0 ;- A/B8    [7:0]Frequency Number (Lower 8 bits)
+        bne RC0
+
+        SELECT_BY_CHANNEL
+
+        txa
+        and #%00010000
+        bne RB0
+
+        ; convert frequency to SGU-1 format
+        pla
+        sta $A0,y
+        jsr CONVERT_FREQ
+        rts
+
+RB0:             ;              [5]KEY-ON [4:2]BLOCK [1:0]F-Num (Hi bits)
+        pla
+        tax
+        and #%00100000          ; extract KEY-ON
+        bne :+
+        lda SGU_FLAGS0
+        and #%11111110          ; clear bit 0
+        sta SGU_FLAGS0
+        bra :++
+:       lda SGU_FLAGS0
+        ora #%00000001          ; set bit 0
+        sta SGU_FLAGS0
+:
+        txa
+        and #%00011111          ; extract BLOCK and F-Num Hi bits
+        sta $B0,y
+        jsr CONVERT_FREQ
+
+        rts
+
+RC0:    cmp #$C0 ;- C8      [7]OutCh_D [6]OutCh_C [5]Right [4]Left [3:1]FeedBack Modulation Factor [0]SynthTyp
+        bne RE0
+
+        SELECT_BY_CHANNEL
+        pla
+        rts
+
+        pla
+        pha                     ; will need value again
+        and #%00110000          ; extract Left/Right
+        bne :+
+        lda #DEFAULT_VOL
+        sta SGU_VOL
+        rts
+:       tax
+        lda #$7f
+        sta SGU_VOL
+        txa
+        cmp #%00110000
+        bne :+
+        rts
+:       aslx 2
+        ora #%01111111
+        sta SGU_PAN
+
+        pla
+        pha                     ; will need value again
+        and #%00001110          ; extract Feedback
+        sta TEMP
+        lda SGU_op0+SGU_OP_REG_MOD
+        and #%11110001          ; clear Modulation bits
+        ora TEMP
+        sta SGU_op0+SGU_OP_REG_MOD
+
+        pla
+        and #%00000001          ; extract Synth Type
+        bne :+
+        ; modulation synthesis (with carrier)
+        lda SGU_op0+SGU_OP_REG_OUT_WAVE
+        and #%00011111          ; OP0 has no output
+        sta SGU_op0+SGU_OP_REG_OUT_WAVE
+        lda SGU_op1+SGU_OP_REG_OUT_WAVE
+        ora #%11100000          ; OP1 outputs
+        sta SGU_op1+SGU_OP_REG_OUT_WAVE
+        lda SGU_op1+SGU_OP_REG_MOD
+        ora #%00001110          ; OP1 is modulated
+        sta SGU_op1+SGU_OP_REG_MOD
+        bra :++
+:       ; additive synthesis (no carrier)
+        lda SGU_op0+SGU_OP_REG_OUT_WAVE
+        ora #%11100000          ; OP0 outputs
+        sta SGU_op0+SGU_OP_REG_OUT_WAVE
+        lda SGU_op1+SGU_OP_REG_OUT_WAVE
+        ora #%11100000          ; OP1 outputs
+        sta SGU_op1+SGU_OP_REG_OUT_WAVE
+        lda SGU_op1+SGU_OP_REG_MOD
+        and #%11110001          ; OP1 is not modulated
+        sta SGU_op1+SGU_OP_REG_MOD
+:
+        rts
+
+RE0:    cmp #$E0 ;- F5          [2:0]Waveform Select
+        bne R01
+
+        SELECT_BY_OPERATOR
+        pla
+        and #$07                ; extract waveform number
+        tax
+        lda WAVE_MAP,x
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_OUT_WAVE,y
+        and #%11111000          ; clear waveform bits
+        ora TEMP
+        sta SGU_base+SGU_OP_REG_OUT_WAVE,y         ; set waveform
+        lda WPAR_MAP,x
+        sta TEMP
+        lda SGU_base+SGU_OP_REG_DELAY,y
+        and #%11110000          ; clear wpar bits
+        ora TEMP
+        sta SGU_base+SGU_OP_REG_DELAY,y         ; set wpar
+
+        rts
+
+R01:    txa
+        cmp #$01
+        bne R08
+
+        ; do nothing. assume (WSE) was set
+        pla
+        rts
+
+R08:    cmp #$08
+        bne UNK
+
+        ; do nothing. assume N-S was not set
+        pla
+        rts
+
+UNK:    ; unknown register, do nothing (store in zeropage for debugging)
+        txa
+        sta $40
+        pla
+        sta $41
+
+        rts
+
+.endproc
+
+.proc CONVERT_FREQ
+        lda $A0, y
         sta RIA::opera
-        lda OPL2_ADDR + $B0, y
+        lda $B0, y
         and #3
         sta RIA::opera+1
-        lda OPL2_ADDR + $B0, y
+        lda $B0, y
         lsr                     ; >> 2 *2 (word sized factor)
         and #%00001110
         tax
@@ -474,39 +836,8 @@ opl_chan:
         sta SGU_FREQ_LO
         lda RIA::mulab+2
         sta SGU_FREQ_HI
-
-        lda OPL2_ADDR + $B0, y
-        and #%00100000          ; KEY-ON
-        beq :+
-        lda #$7f
-        bra :++
-:       lda #$00
-:       sta SGU_VOL
-
-        stz TMP_PAN
-        lda OPL2_ADDR + $C0, y
-        and #%00100000          ; Right Channel
-        beq :+
-        lda #$7f
-        sta TMP_PAN
-:       lda OPL2_ADDR + $C0, y
-        and #%00010000          ; Left Channel
-        beq :+
-        lda TMP_PAN
-        clc
-        adc #$81
-        sta TMP_PAN
-:
-        lda TMP_PAN
-        sta SGU_PAN
-
-        iny
-        cpy #8
-        bne opl_chan
-
         rts
-
-TMP_PAN: .res 1
+.endproc
 
 block_f_scale:
         .word $00B1, $0162, $02C4, $0589, $0B13, $1627, $2C4F, $589E
