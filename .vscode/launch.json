@@ -11,7 +11,7 @@
       "program": "${command:cmake.launchTargetPath}",
       "command": "/home/smoku/.local/bin/emu",
       "args": ["--dap", "-z", "${command:cmake.launchTargetPath}"],
-      "stopOnEntry": true,
+      // "stopOnEntry": true,
       "cwd": "${workspaceFolder}",
       "trace": false,
       "preLaunchTask": "CMake: build"

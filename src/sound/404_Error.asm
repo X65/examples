@@ -59,7 +59,8 @@ POKEY2_AUDF4 	  = POKEY_AUDF4 + POKEY2_offset
 POKEY2_AUDC4 	  = POKEY_AUDC4 + POKEY2_offset
 POKEY2_AUDCTL 	  = POKEY_AUDCTL + POKEY2_offset
 
-SGU_base = $FEC0
+SGU_base   = $FEC0
+SGU_select = SGU_base + $3F
 
 .zeropage
 DUTY_shifter: .res 2
@@ -138,22 +139,22 @@ play:
 .endmacro
 
 convert_pokey_to_sgu:
-		stz SGU_base+0                ; select channel 0
+		stz SGU_select                ; select channel 0
 		pokey_to_sgu POKEY_AUDF1
-        inc SGU_base+0
+        inc SGU_select
 		pokey_to_sgu POKEY_AUDF2
-		inc SGU_base+0
+		inc SGU_select
 		pokey_to_sgu POKEY_AUDF3
-		inc SGU_base+0
+		inc SGU_select
 		pokey_to_sgu POKEY_AUDF4
 
-		inc SGU_base+0
+		inc SGU_select
 		pokey_to_sgu POKEY2_AUDF1
-        inc SGU_base+0
+        inc SGU_select
 		pokey_to_sgu POKEY2_AUDF2
-		inc SGU_base+0
+		inc SGU_select
 		pokey_to_sgu POKEY2_AUDF3
-		inc SGU_base+0
+		inc SGU_select
 		pokey_to_sgu POKEY2_AUDF4
 
 

@@ -1,7 +1,7 @@
 .include "../cgia.asm"
 
 .segment "INFO"
-    .byte "VBL demo"
+    .byte "Sprites demo"
 
 .segment "VECTORS"
     .word 0, 0, 0, 0, 0, 0, 0, 0

@@ -108,14 +108,16 @@ SID_PadY        = SID_Base + $1A
 SID_V3_WaveOut  = SID_Base + $1B
 SID_V3_ADSROut  = SID_Base + $1C
 
-SGU_base = $FEC0
+SGU_base   = $FEC0
+SGU_select = SGU_base + $3F
 
 .zeropage
 DUTY_shifter: .res 2
-VOL_shifter:  .res 1
 FILTER_FC:    .res 2
 FILTER_RES:   .res 1
 FILTER_EN:    .res 1
+
+TEMP:    .res 1
 
 .code
 .org $200
@@ -1654,26 +1656,24 @@ write_sid_registers:
 		rts
 
 convert_sid_to_sgu:
-        ldx #24
-		jsr prepare_vol_shifter
 		ldx #21
 		jsr prepare_filters
 
-		stz SGU_base+0                ; select channel 0
+		stz SGU_select                ; select channel 0
 		ldx #0                        ; SID Voice 1 offset
 		jsr convert_sid_channel
 		lda SID_FilterCtrl
 		and #%00000001
 		jsr convert_filter
 
-		inc SGU_base+0
+		inc SGU_select
 		ldx #7                        ; SID Voice 2 offset
 		jsr convert_sid_channel
 		lda SID_FilterCtrl
 		and #%00000010
 		jsr convert_filter
 
-		inc SGU_base+0
+		inc SGU_select
 		ldx #14                       ; SID Voice 3 offset
 		jsr convert_sid_channel
 		lda SID_FilterCtrl
