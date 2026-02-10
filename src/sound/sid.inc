@@ -24,8 +24,23 @@ prepare_filters:
         sta FILTER_FC           ; FC LO
         inx
         lda SID_Base,x
+		lsr A
         sta FILTER_FC+1         ; FC HI
-
+		lda FILTER_FC
+		ror A
+		sta FILTER_FC
+		; clamp cutoff to $6D60 (28000) for SVF stability
+		sec
+		lda FILTER_FC
+		sbc #$60
+		lda FILTER_FC+1
+		sbc #$6D
+		bcc :+              ; < 28000 → no clamp
+		lda #$60
+		sta FILTER_FC
+		lda #$6D
+		sta FILTER_FC+1
+:
         inx
         lda SID_Base,x
         and #$f0
@@ -126,21 +141,21 @@ convert_ctl:
 ; ===================================================================
 ; SID ADSR (4-bit) → OPN-style AR/DR/SL/SR/RR (5/5/4/5/4 bit)
 ; ===================================================================
-; Lookup table: SID value 0-15 → OPN rate (rounded 31*(15-val)/15, clamped ≥1)
-ar_table: ; AR = min(31, round(31 * (16 - A) / 15))
-        .byte 31, 31, 29, 27, 25, 23, 21, 19   ; val 0-7
-        .byte 17, 14, 12, 10,  8,  6,  4,  2   ; val 8-15
-; if S == 0:
-;     SL = 15
-; else:
-;     frac = S / 15.0
-;     dB_att = -20 * log10(frac)          # positive value
-;     SL = min(15, max(0, floor(dB_att / 6.0)))  # floor() (not round) for louder bias
+; Lookup tables: SID 4-bit value → OPN 5-bit rate
+; Log-mapped through actual SID timing: R = 31 - 2.506 * log2(T_sid / 2ms)
+ar_table:
+        .byte 31, 26, 23, 22, 20, 19, 18, 18   ; val 0-7
+        .byte 17, 14, 11,  9,  9,  5,  3,  1   ; val 8-15
+dr_table:
+        .byte 27, 22, 20, 18, 16, 15, 14, 14   ; val 0-7
+        .byte 13, 10,  7,  5,  5,  1,  1,  1   ; val 8-15
+; SL (4-bit, 3dB/step): SL = floor(-20*log10(S/15) / 3), S=0 → 15
 sl_table:
-        .byte 15,3,2,2,1,1,1,1,0,0,0,0,0,0,0,0
+        .byte 15,7,5,4,3,3,2,2,1,1,1,0,0,0,0,0
+; RR (4-bit): R = 15 - 1.253 * log2(T_decay / 6ms)
 rr_table:
-        .byte  14, 14, 13, 13, 12, 12,  11, 11   ; val 0-7
-        .byte  10,  0,  9,  8,  7,  5,   4,  2   ; val 8-15
+        .byte  15, 12, 11, 11, 10,  9,  9,  8   ; val 0-7
+        .byte   8,  6,  5,  4,  4,  2,  1,  1   ; val 8-15
 convert_adsr:
         lda SID_V1_AttDecay,x   ; attack
         lsrx 4
@@ -161,11 +176,11 @@ convert_adsr:
 :       lda SID_V1_AttDecay,x   ; decay
 		and #$0f
 		tay
-		lda ar_table,y
+		lda dr_table,y
 		and #$0f
 		ora TEMP
 		sta SGU_base+2                ; store AR_lo4/DR_lo4
-        lda ar_table,y
+        lda dr_table,y
 		and #%00010000                ; handle DR_msb
 		bne :+
 		lda SGU_base+7
