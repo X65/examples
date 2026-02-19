@@ -62,6 +62,9 @@
 ; Also modified to allow easy SID re-mapping
 
 CLOCK = 1000000 ; 1 MHz timers clock
+; this tune is designed for 50Hz PAL C64
+SID_SCALE = PAL_SID_SCALE
+FRAME_HZ = 50
 
 ; CGIA setup
 text_offset  = $d000
@@ -143,10 +146,9 @@ TEMP:    .res 1
 		bpl :-
 
 ; Assumes 1Mhz system clock.
-Setup50HzTimer:
-        lda #<(CLOCK/50)
+        lda #<(CLOCK/FRAME_HZ)
         sta TIMERS::ta_lo
-        lda #>(CLOCK/50)
+        lda #>(CLOCK/FRAME_HZ)
         sta TIMERS::ta_hi
 		; enable interrupts
         lda #$7f                ; Clear all IRQ flags

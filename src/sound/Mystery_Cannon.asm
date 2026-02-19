@@ -37,6 +37,9 @@ INITMUSIC   = $1000
 PLAYMUSIC   = $1003
 DEFSONG     = 0
 
+SID_SCALE = PAL_SID_SCALE
+FRAME_HZ = 50
+
 SID_Base        = $D400
 SID2_Base       = $D420
 SID2_offset     = SID2_Base - SID_Base
@@ -86,9 +89,9 @@ TEMP:    .res 1
 
 ; Assumes 1Mhz system clock.
 Setup50HzTimer:
-        lda #<(CLOCK/50)
+        lda #<(CLOCK/FRAME_HZ)
         sta TIMERS::ta_lo
-        lda #>(CLOCK/50)
+        lda #>(CLOCK/FRAME_HZ)
         sta TIMERS::ta_hi
 		; enable interrupts
         lda #$7f                ; Clear all IRQ flags

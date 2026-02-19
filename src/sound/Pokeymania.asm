@@ -40,6 +40,9 @@ SONGS_COUNT = 4
 
 PLAYING_OFFSET = text_columns + text_columns/2
 
+SID_SCALE = PAL_SID_SCALE
+FRAME_HZ = 50
+
 SID_Base        = $D400
 
 SID_V1_FreqL    = SID_Base + $0
@@ -114,9 +117,9 @@ was_key_pressed:
 
 ; Assumes 1Mhz system clock.
 Setup50HzTimer:
-        lda #<(CLOCK/50)
+        lda #<(CLOCK/FRAME_HZ)
         sta TIMERS::ta_lo
-        lda #>(CLOCK/50)
+        lda #>(CLOCK/FRAME_HZ)
         sta TIMERS::ta_hi
 		; enable interrupts
         lda #$7f                ; Clear all IRQ flags

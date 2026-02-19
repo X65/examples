@@ -231,14 +231,29 @@ convert_gate:
 		rts
 
 convert_sid_channel:
-		; convert frequency scale by 6425/7382
+		; SGU-1 is tuned as a 1MHz SID, so according to datasheet formula
+		; Fout = (Fn * Fclk/2^24) Hz
+		; to get A-4 440Hz => Fn = 440 * 2^24 / 1MHz ~= 7382
+		; but SID was running either
+		; in an NTSC 60Hz C64, with clock 14.31818 MHz / 14 = 1022727.142857143 Hz
+		; or a PAL 50Hz C64 with clock 17.734475 MHz / 18 = 985248.6(1) Hz
+		; so the A-4 440Hz on NTSC => Fn = 440 * 2^24 / 1022727.142857143 Hz ~= 7218
+		; and the A-4 440Hz on PAL => Fn = 440 * 2^24 / 985248.6(1) Hz ~= 7493
+		; thus we need to scale C64 frequencies to match SGU-1's tuning by
+		; PAL => 7382/7493 ~= 0.985248611 => ~252/256
+		; NTSC => 7382/7218 ~= 1.022727143 => ~262/256
+		; these ase so close, that you can just use C64 value as is, and be done with
+		; but as an example and for completeness sake, we do the scaling ¯\_(ツ)_/¯
+PAL_SID_SCALE = 252
+NTSC_SID_SCALE = 262
         lda SID_V1_FreqL,x
         sta RIA::opera
         lda SID_V1_FreqH,x
         sta RIA::opera+1
-        lda #223                ; 223/256 ~= 6425/7382
+        lda #<SID_SCALE
         sta RIA::operb
-        stz RIA::operb+1
+        lda #>SID_SCALE
+        sta RIA::operb+1
         lda RIA::mulab+1
 		sta SGU_base+32+0
         lda RIA::mulab+2
