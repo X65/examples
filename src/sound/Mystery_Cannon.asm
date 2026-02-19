@@ -325,8 +325,8 @@ convert_sid_to_sgu:
 		lda SID_FilterCtrl+SID2_offset
 		and #%00000100
 		jsr convert_filter
-		lda SID_FilterCtrl
-		jsr convert_3_off+SID2_offset
+		lda SID_FilterCtrl+SID2_offset
+		jsr convert_3_off
 
 		rts
 
