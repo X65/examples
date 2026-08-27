@@ -82,7 +82,9 @@ static const uint8_t __attribute__((aligned(4))) mixed_mode_dl[] = {
     0x13, 0x00, 0x00,                               // LMS
     0x14, 0x00,                                     // border_columns = 0
     0x24, 0x9f,                                     // row_height = 159
-    0x34, (7 << 4) | 7,                             // texture_bits = 7,7
+    0x34, (6 << 4) | 6,                             // texture_bits: 128x128 texture.
+                                                    // The field holds bits-1 (0..7 => 2..256px),
+                                                    // so 7-bit dimensions encode as 6.
     0x25, split16(0x0000),                          // u = 0.0
     0x35, split16(0x0000),                          // v = 0.0
     0x45, split16(0x0000),                          // du = 0.0
