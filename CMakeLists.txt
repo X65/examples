@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.20)
 
 #Note this line must be before project!
 set(CMAKE_TOOLCHAIN_FILE ./cc65-toolchain.cmake)

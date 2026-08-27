@@ -18,7 +18,17 @@ macro( __compilerCc65 lang )
     set( CMAKE_${lang}_COMPILER_ID_WORKS TRUE )
     set( CMAKE_${lang}_COMPILER_ID_FORCED TRUE )
 
+    # ca65/cc65 write a make-style depfile listing every .include, but the
+    # generators only reach for it once the format is declared as well - without
+    # that CMake falls back to its own scanner, which looks for #include and so
+    # sees none of the .asm/.inc includes: editing a shared include (sid.inc,
+    # macros.asm, cgia.asm...) would rebuild nothing that includes it.
     set( CMAKE_DEPFILE_FLAGS_${lang} "--create-dep <DEP_FILE>")
+    if( (NOT DEFINED CMAKE_DEPENDS_USE_COMPILER OR CMAKE_DEPENDS_USE_COMPILER)
+        AND CMAKE_GENERATOR MATCHES "Makefiles|WMake" )
+        set( CMAKE_${lang}_DEPENDS_USE_COMPILER TRUE )
+    endif()
+    set( CMAKE_${lang}_DEPFILE_FORMAT gcc )
     set( CMAKE_${lang}_VERBOSE_FLAG "-v" )
     set( CMAKE_${lang}_FLAGS_DEBUG_INIT "-g -D DEBUG --asm-define DEBUG --target none"  )
 endmacro()
