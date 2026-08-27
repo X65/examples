@@ -1,9 +1,17 @@
 // converter.ts -t 1 ./plane_1.png -o ../devel/examples/src/cgia/data/sotb-1.h
 
-static const uint16_t video_offset_1 = 0x1000;
-static const uint16_t color_offset_1 = 0x5000;
-static const uint16_t bkgnd_offset_1 = 0x5800;
-static const uint16_t dl_offset_1 = 0x4F00;
+// Layer 1 of three. Each layer is one $5000 slab - bitmap, display list,
+// colour, background - and the three sit end to end from $0C00 (the code ends
+// at $0677) up to $FBCF. That top bound is the point: 2000 bytes of background
+// from the old $F800 ran to $FFCF, across the $FEC0 I/O window, where the
+// loader's writes land on registers and the CGIA reads the memory cell
+// underneath - uninitialised noise for the last 32 columns of the layer.
+// NOTE: converter.ts picks these addresses, so a regenerated header brings the
+// old ones back.
+static const uint16_t video_offset_1 = 0x0C00;
+static const uint16_t color_offset_1 = 0x4C00;
+static const uint16_t bkgnd_offset_1 = 0x5400;
+static const uint16_t dl_offset_1 = 0x4B00;
 static uint8_t __attribute__((aligned(4))) display_list_1[] = {
 0x70, 0x70, 0x30,                                     // 2x 8 + 1x 4 of empty background lines
 0x73, (video_offset_1 & 0xFF), ((video_offset_1 >> 8) & 0xFF),  // LMS

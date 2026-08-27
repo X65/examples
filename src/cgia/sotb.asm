@@ -60,18 +60,31 @@ offset_grass_11:    .res 2
 offset_fence_12:    .res 2
 sprite_frame:       .res 2
 
-video_offset_1 = $1000
-color_offset_1 = $5000
-bkgnd_offset_1 = $5800
-dl_offset_1 = $4F00
-video_offset_2 = $6000
-color_offset_2 = $A000
-bkgnd_offset_2 = $A800
-dl_offset_2 = $9F00
-video_offset_3 = $B000
-color_offset_3 = $F000
-bkgnd_offset_3 = $F800
-dl_offset_3 = $EF00
+; Background layers, mirrored from src/cgia/data/sotb-[123].h - keep in step.
+; One $5000 slab per layer, laid end to end from just above the code:
+;
+;   layer  bitmap 16000   DL 62/72   colour 2000   background 2000
+;   1      $0C00-$4A7F    $4B00      $4C00-$53CF   $5400-$5BCF
+;   2      $5C00-$9A7F    $9B00      $9C00-$A3CF   $A400-$ABCF
+;   3      $AC00-$EA7F    $EB00      $EC00-$F3CF   $F400-$FBCF
+;
+; The last byte has to stay below $FEC0, where the chip registers begin: a write
+; there goes to a register, but the CGIA scans the memory cell underneath, so
+; anything spilling over the top is loaded into I/O and read back as whatever
+; the cells power up holding. Layer 3 used to end at $FFCF and lost the last 32
+; columns of its background row 21 that way.
+video_offset_1 = $0C00
+color_offset_1 = $4C00
+bkgnd_offset_1 = $5400
+dl_offset_1 = $4B00
+video_offset_2 = $5C00
+color_offset_2 = $9C00
+bkgnd_offset_2 = $A400
+dl_offset_2 = $9B00
+video_offset_3 = $AC00
+color_offset_3 = $EC00
+bkgnd_offset_3 = $F400
+dl_offset_3 = $EB00
 
 spr_0_data = $A000
 spr_1_data = $8000
