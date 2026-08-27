@@ -30,7 +30,7 @@ macro( __compilerCc65 lang )
     endif()
     set( CMAKE_${lang}_DEPFILE_FORMAT gcc )
     set( CMAKE_${lang}_VERBOSE_FLAG "-v" )
-    set( CMAKE_${lang}_FLAGS_DEBUG_INIT "-g -D DEBUG --asm-define DEBUG --target none"  )
+    set( CMAKE_${lang}_FLAGS_DEBUG_INIT "-g -D DEBUG --asm-define DEBUG"  )
 endmacro()
 
 __compilerCc65( C )
