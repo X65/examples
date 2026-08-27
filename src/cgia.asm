@@ -27,7 +27,7 @@
     flags           .byte
     border_columns  .byte
     row_height      .byte
-    texture_bits    .byte       ; 2-0 texture_width_bits, 6-4 texture_height_bits
+    texture_bits    .byte       ; 2-0 width_bits-1, 6-4 height_bits-1; 0..7 => 2..256 px
     u               .word
     v               .word
     du              .word
