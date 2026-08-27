@@ -149,6 +149,10 @@ start_play:
 
 		jsr reset_sgu
 
+		lda #$FF          ; SGU-1 comes up muted
+		sta SGU_select    ; select the service bank
+		sta SGU_base+$20  ; master volume - unmute
+
 play:
         jsr PLAYMUSIC
         jsr convert_sid_to_sgu

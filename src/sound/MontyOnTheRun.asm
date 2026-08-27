@@ -158,6 +158,10 @@ TEMP:    .res 1
         lda #$01
         sta RIA::irq_enable
 
+	lda #$FF			; SGU-1 comes up muted
+	sta SGU_select		; select the service bank
+	sta SGU_base+$20	; master volume - unmute
+
 init:
 	;JMP initmusic
 	JSR initmusic

@@ -56,7 +56,7 @@ CLOCK = 1000000 ;X65
             cld
             ldx #$ff
             txs
-            
+
             lda #$7f
             sta TIMERS::icr
             lda #$01
@@ -69,10 +69,10 @@ CLOCK = 1000000 ;X65
             sta $fffe
             lda #>irq
             sta $ffff
-            
+
             jsr init_cgia
             jsr SGU_INIT
-            
+
             lda #<regdata
             sta dataptr
             lda #>regdata
@@ -83,7 +83,7 @@ CLOCK = 1000000 ;X65
             sta waitptr+1
             lda #1
             sta waitcnt
-            
+
             lda #<(CLOCK/44100) * 2
             sta TIMERS::ta_lo
             lda #>(CLOCK/44100) * 2
@@ -100,16 +100,16 @@ CLOCK = 1000000 ;X65
             sta TIMERS::tb_lo
             lda waitdata+3
             sta TIMERS::tb_hi
-            
+
             lda TIMERS::icr
             lda #$82
             sta TIMERS::icr
             cli
-            
-            
+
+
 mainloop:   lda #0
             sta CGIA::back_color
-            
+
             lda dataptr
             tax
             and #$0f
@@ -138,8 +138,8 @@ mainloop:   lda #0
             tay
             lda conv,y
             sta SCREEN+$00
-            
-            
+
+
             lda waitptr
             tax
             and #$0f
@@ -168,9 +168,9 @@ mainloop:   lda #0
             tay
             lda conv,y
             sta SCREEN+$06
-            
-            
-            
+
+
+
 :           lda TIMERS::tb_lo
             pha
             lda TIMERS::tb_hi
@@ -201,14 +201,14 @@ mainloop:   lda #0
             tay
             lda conv,y
             sta SCREEN+$26
-            
-            
+
+
             lda waitcnt
             beq :-
             dec waitcnt
             lda #$0f
             sta CGIA::back_color
-            
+
 getloop:    ldy #$00
             lda (dataptr),y
             cmp #$fe
@@ -227,7 +227,7 @@ getloop:    ldy #$00
             bcc getloop
             inc dataptr+1
             bcs getloop
-            
+
 next:       .if HAS_LOOP
                 bne loopdata
             .else
@@ -248,8 +248,8 @@ loopdata:   .if HAS_LOOP
                 jmp mainloop
 :
             .endif
-            
-            
+
+
 irq:        sta irqa
             sty irqy
             ldy #0
@@ -379,9 +379,9 @@ display_list:
 .byte   CGIA_DL_INS_JUMP|CGIA_DL_INS_DL_INTERRUPT
 .word   display_list
 
-            
+
 conv:   .byte "0123456789ABCDEF"
-            
+
             ;insert your music data here
             .include "data/tune.asm"
 
@@ -438,6 +438,10 @@ SGU_RESTIMER_HI                 = SGU_reg + 31
 
 
 SGU_INIT:
+        lda #$FF                ; SGU-1 comes up muted
+        sta SGU_select          ; select the service bank
+        sta SGU_base+$20        ; master volume - unmute
+
         ldx #0
 :       stx SGU_select
         ; channel setup
@@ -699,8 +703,11 @@ RB0:             ;              [5]KEY-ON [4:2]BLOCK [1:0]F-Num (Hi bits)
         and #%11111110          ; clear bit 0
         sta SGU_FLAGS0
         bra :++
-:       lda SGU_FLAGS0
-        ora #%00000001          ; set bit 0
+:       lda SGU_FLAGS0          ; keying a voice that is already sounding does not
+        and #%00000001          ; retrigger it on OPL - only the 0->1 edge
+        bne :+
+        lda SGU_FLAGS0
+        ora #%00000011          ; set bit 0 and 1 - OPL key-on is a hard retrigger
         sta SGU_FLAGS0
 :
         txa

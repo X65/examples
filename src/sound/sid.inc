@@ -220,15 +220,26 @@ convert_gate:
         lda SID_V1_Ctrl,x
 		and #%00000001
 		beq :+
-		lda SGU_base+32+4 ; set KEY bit
-		ora #%00000001
-		sta SGU_base+32+4 ; flags0
+		lda SGU_base+32+4 ; set KEY bit - GATE alone, because gating a SID up is a
+		ora #%00000001    ; soft retrigger: the attack starts from the level the
+		sta SGU_base+32+4 ; flags0  envelope is at, which is what SGU-1's GATE does
 		rts
 :
 		lda SGU_base+32+4 ; clear KEY bit
 		and #%11111110
 		sta SGU_base+32+4 ; flags0
-		rts
+		; A hard restart is not a gate edge - it is the player dumping the envelope
+		; a frame or two ahead of the next note by gating off with the release wound
+		; down to 0. Hand that to TRIG, which scrubs the envelope to silence at once
+		; so the note that follows attacks from nothing. TRIG self-clears and the
+		; scrub is idempotent, so repeating it while the window lasts is harmless.
+		lda SID_V1_SusRel,x
+		and #$0f
+		bne :+
+		lda SGU_base+32+4 ; set TRIG bit
+		ora #%00000010
+		sta SGU_base+32+4 ; flags0
+:		rts
 
 convert_sid_channel:
 		; SGU-1 is tuned as a 1MHz SID, so according to datasheet formula

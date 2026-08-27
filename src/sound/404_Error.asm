@@ -98,6 +98,12 @@ Setup150HzTimer:
         lda #$01
         sta RIA::irq_enable
 
+        lda #$FF                ; SGU-1 comes up muted
+        sta SGU_select          ; select the service bank
+        sta SGU_base+$20        ; master volume - unmute
+
+        jsr setup_sgu_voices
+
         lda #DEFSONG
         jsr INITMUSIC
 
@@ -137,6 +143,28 @@ play:
 		lda #$40
 		sta SGU_base+32+8
 .endmacro
+
+; POKEY's AUDC volume nibble *is* the amplitude - there is no envelope generator -
+; and that is what pokey_to_sgu writes to the channel VOL. So give each voice one
+; square operator with its envelope pinned open and key it once. Without this the
+; operators sit at OUT=0 and nothing reaches the mix, however loud VOL is.
+setup_sgu_voices:
+		ldx #0
+:		stx SGU_select
+		lda #1
+		sta SGU_base+0    ; x1 frequency multiplier
+		lda #%11110000
+		sta SGU_base+2    ; AR = 15 (+msb below), DR = 0: no decay
+		stz SGU_base+3    ; SL = 0: sustain at full level
+		stz SGU_base+4    ; SR = 0
+		lda #%11110011    ; OUT = 7, AR_msb (AR = 31), WAVE = PULSE
+		sta SGU_base+7
+		lda #%00000011    ; key on - KEY+TRIG, VOL does the rest
+		sta SGU_base+32+4 ; flags0
+		inx
+		cpx #8            ; two POKEYs, four voices each
+		bne :-
+		rts
 
 convert_pokey_to_sgu:
 		stz SGU_select                ; select channel 0
