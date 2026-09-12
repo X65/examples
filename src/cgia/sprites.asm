@@ -19,7 +19,7 @@ sprite_descriptors:
     .tag CGIA_SPRITE
 
 .CODE
-.define SPRITE_WIDTH   4
+.define SPRITE_COLUMNS 2
 .define SPRITE_HEIGHT  26
 .define SPRITE_COLOR_1 0
 .define SPRITE_COLOR_2 23
@@ -83,25 +83,27 @@ sprites_loop:
     sta sprite_descriptors, x   ; lines_y
     inx
 
-    lda #(SPRITE_MASK_MULTICOLOR | (SPRITE_WIDTH-1))
+    lda #(SPRITE_MASK_MULTICOLOR | (SPRITE_COLUMNS-1))
     sta sprite_descriptors, x   ; flags
     inx
 
     inx     ; reserved
 
+    lda #0
+    sta sprite_descriptors, x   ; color 0 - never drawn directly (4bpp half-bright only)
+    inx
+
     lda #SPRITE_COLOR_1
-    sta sprite_descriptors, x   ; color 01
+    sta sprite_descriptors, x   ; color 1 - pixel value 01
     inx
 
     lda #SPRITE_COLOR_2
-    sta sprite_descriptors, x   ; color 10
+    sta sprite_descriptors, x   ; color 2 - pixel value 10
     inx
 
     lda #SPRITE_COLOR_3
-    sta sprite_descriptors, x   ; color 11
+    sta sprite_descriptors, x   ; color 3 - pixel value 11
     inx
-
-    inx     ; reserved
 
     lda #<sprite_data
     sta sprite_descriptors, x   ; data_offset
@@ -133,15 +135,18 @@ sprites_loop:
     sta sprite_descriptors + 1*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::pos_y
     lda #$ff
     sta sprite_descriptors + 1*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::pos_y + 1
-    lda #(SPRITE_MASK_MIRROR_X | SPRITE_MASK_MIRROR_X | (SPRITE_WIDTH-1))
+    ; the same data read as 1bpp: one byte per column, so twice the columns,
+    ; every set bit drawn in color 1
+    lda #(SPRITE_BITS_1BPP | SPRITE_MASK_MIRROR_X | (2*SPRITE_COLUMNS-1))
     sta sprite_descriptors + 2*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::flags
-    lda #(SPRITE_MASK_MULTICOLOR | SPRITE_MASK_DOUBLE_WIDTH | (SPRITE_WIDTH-1))
+    lda #(SPRITE_BITS_2BPP | SPRITE_MASK_DOUBLE_WIDTH | (SPRITE_COLUMNS-1))
     sta sprite_descriptors + 3*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::flags
-    lda #(SPRITE_MASK_MULTICOLOR | SPRITE_MASK_MIRROR_X | (SPRITE_WIDTH-1))
+    lda #(SPRITE_BITS_2BPP | SPRITE_MASK_MIRROR_X | (SPRITE_COLUMNS-1))
     sta sprite_descriptors + 4*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::flags
-    lda #(SPRITE_MASK_MULTICOLOR | SPRITE_MASK_MIRROR_Y | (SPRITE_WIDTH-1))
+    lda #(SPRITE_BITS_2BPP | SPRITE_MASK_MIRROR_Y | (SPRITE_COLUMNS-1))
     sta sprite_descriptors + 5*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::flags
-    lda #(SPRITE_MASK_MULTICOLOR | (SPRITE_WIDTH-2))
+    ; one column narrower than the data: the lines skew
+    lda #(SPRITE_BITS_2BPP | (SPRITE_COLUMNS-2))
     sta sprite_descriptors + 6*CGIA_SPRITE_DESC_LEN + CGIA_SPRITE::flags
 
     ; trigger NMI on VBL

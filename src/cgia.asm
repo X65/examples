@@ -40,6 +40,8 @@
     border_columns  .byte
     start_y         .byte
     stop_y          .byte
+    reserved        .byte 4
+    color           .byte 8     ; shared by every sprite on the plane (palette entries 4..11)
 .endstruct
 
 .define CGIA_PLANES                 4
@@ -150,8 +152,7 @@
     lines_y .word
     flags   .byte
             .byte           ; reserved
-    color   .byte 3
-            .byte           ; reserved
+    color   .byte 4
     data_offset     .word
     next_dsc_offset .word   ; after passing lines_y, reload sprite descriptor data
                             ; this is a built-in sprite multiplexer
@@ -161,15 +162,43 @@
 .define SPRITE_MAX_WIDTH 8
 
 ; sprite flags:
-; 0-2 - width in bytes
-; 3 - [RESERVED]
-; 4 - double-width
-; 5 - multicolor
+; 0-2 - width in 8 pixel columns, minus one (1..8 columns, 8..64 px)
+; 3 - double-width
+; 4-5 - pixel bits: 00 - 1bit, 01 - 2bit, 10 - 3bit, 11 - 4bit
+;       (same encoding as the plane's PLANE_MASK_PIXEL_BITS)
 ; 6 - mirror X
 ; 7 - mirror Y
 .define SPRITE_MASK_WIDTH        %00000111
-.define SPRITE_MASK_RESERVED     %00001000
-.define SPRITE_MASK_DOUBLE_WIDTH %00010000
-.define SPRITE_MASK_MULTICOLOR   %00100000
+.define SPRITE_MASK_DOUBLE_WIDTH %00001000
+.define SPRITE_MASK_PIXEL_BITS   %00110000
 .define SPRITE_MASK_MIRROR_X     %01000000
 .define SPRITE_MASK_MIRROR_Y     %10000000
+
+.define SPRITE_PIXEL_BITS_SHIFT 4
+.define SPRITE_BITS_1BPP %00 << SPRITE_PIXEL_BITS_SHIFT
+.define SPRITE_BITS_2BPP %01 << SPRITE_PIXEL_BITS_SHIFT
+.define SPRITE_BITS_3BPP %10 << SPRITE_PIXEL_BITS_SHIFT
+.define SPRITE_BITS_4BPP %11 << SPRITE_PIXEL_BITS_SHIFT
+; the old name for 2bpp sprites
+.define SPRITE_MASK_MULTICOLOR SPRITE_BITS_2BPP
+
+; Sprite pixel data uses the MODE1 packing at every depth: a column of
+; 8 pixels takes `bpp` bytes, most significant pixel first, so a line is
+; `bpp * columns` bytes long.
+;
+; Pixel values index one 16 entry palette per sprite, and a deeper sprite
+; simply reaches further into it:
+;
+;   bits 3:2 | bits 1:0 | draws
+;   ---------+----------+--------------------------------------------
+;     00     |   cc     | descriptor color[cc]     (0000 is transparent)
+;     01     |   cc     | plane color[cc]
+;     10     |   cc     | plane color[4+cc]
+;     11     |   cc     | descriptor color[cc], half-bright (index ^ 4)
+;
+; 1bpp sees entry 1, 2bpp entries 1..3, 3bpp entries 1..7 (bit 3 dropped),
+; 4bpp all of them. Entry 0 is always transparent, so descriptor color[0]
+; is only ever drawn through entry 12, half-bright.
+
+; a palette index is hue * 8 + level; toggling level bit 2 moves four levels
+.define CGIA_COLOR_HALF_BRIGHT %00000100

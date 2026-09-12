@@ -170,10 +170,10 @@ cgia_planes:
     .byte PF2,4,7,80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; bg3
     .byte $03,$00,$00,(SPRITE_Y+SPRITE_HEIGHT-1),$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00 ; sprites
 sprite_descriptors:
-    .byte <SPRITE_X,>SPRITE_X,<SPRITE_Y,>SPRITE_Y,<SPRITE_HEIGHT,>SPRITE_HEIGHT,7|SPRITE_MASK_MULTICOLOR,$00
-    .byte $0A,$6A,$06,$00,<spr_0_data,>spr_0_data,$00,$00
-    .byte <SPRITE_X,>SPRITE_X,<SPRITE_Y,>SPRITE_Y,<SPRITE_HEIGHT,>SPRITE_HEIGHT,7|SPRITE_MASK_MULTICOLOR,$00
-    .byte $99,$9A,$9B,$00,<spr_1_data,>spr_1_data,$10,$00
+    .byte <SPRITE_X,>SPRITE_X,<SPRITE_Y,>SPRITE_Y,<SPRITE_HEIGHT,>SPRITE_HEIGHT,3|SPRITE_MASK_MULTICOLOR,$00
+    .byte $00,$0A,$6A,$06,<spr_0_data,>spr_0_data,$00,$00
+    .byte <SPRITE_X,>SPRITE_X,<SPRITE_Y,>SPRITE_Y,<SPRITE_HEIGHT,>SPRITE_HEIGHT,3|SPRITE_MASK_MULTICOLOR,$00
+    .byte $00,$99,$9A,$9B,<spr_1_data,>spr_1_data,$10,$00
 
 ; -----------------------------------------------------------------------------
 nmi:

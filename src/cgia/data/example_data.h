@@ -32,12 +32,15 @@ static const uint8_t __attribute__((aligned(4))) text80_mode_dl[] = {
     0x82, split16(text_mode_dl_offset)              // JMP to begin of DL and wait for Vertical BLank
 };
 
-#define EXAMPLE_SPRITE_WIDTH   4
+// 2bpp sprite: a column of 8 pixels takes 2 bytes per line (MODE1 packing),
+// so flags = SPRITE_BITS_2BPP | (EXAMPLE_SPRITE_COLUMNS - 1)
+#define EXAMPLE_SPRITE_COLUMNS 2
+#define EXAMPLE_SPRITE_BPP     2
 #define EXAMPLE_SPRITE_HEIGHT  26
 #define EXAMPLE_SPRITE_COLOR_1 0
 #define EXAMPLE_SPRITE_COLOR_2 23
 #define EXAMPLE_SPRITE_COLOR_3 10
-uint8_t __attribute__((aligned(4))) example_sprite_data[EXAMPLE_SPRITE_WIDTH * EXAMPLE_SPRITE_HEIGHT] = {
+uint8_t __attribute__((aligned(4))) example_sprite_data[EXAMPLE_SPRITE_COLUMNS * EXAMPLE_SPRITE_BPP * EXAMPLE_SPRITE_HEIGHT] = {
     0b00000000, 0b00010101, 0b01000000, 0b00000000, //
     0b00000000, 0b01011111, 0b11010100, 0b00000000, //
     0b00000000, 0b01111111, 0b11111101, 0b00000000, //
